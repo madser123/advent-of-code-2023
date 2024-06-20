@@ -31,9 +31,14 @@ impl FromStr for Draw {
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let cubes = s
-            // Split the str and create iterator of chunks with (<count>, <color>)
+            // Remove all commas
+            .replace(',', "")
+            // Split the str
             .split(' ')
+            // Remove empty strings
+            .filter(|s| !s.is_empty())
             .collect::<Vec<_>>()
+            // Create iterator of chunks with (<count>, <color>)
             .chunks(2)
             // Create cubes from chunks
             .map(|chunk| {
@@ -70,7 +75,7 @@ impl Round {
         })
     }
 
-    pub fn id(&self) -> &i32 {
+    pub const fn id(&self) -> &i32 {
         &self.id
     }
 }
