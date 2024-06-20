@@ -1,9 +1,9 @@
-mod cube;
-mod round;
-
 use std::str::FromStr;
 
-use cube::Limits;
+pub mod cube;
+pub mod round;
+
+pub use cube::Limits;
 use round::{Round, RoundError};
 
 #[derive(Debug)]
