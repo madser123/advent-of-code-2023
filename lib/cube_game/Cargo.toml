@@ -1,10 +1,8 @@
 [package]
-name = "advent-of-code-2023"
+name = "cube_game"
 version = "0.1.0"
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-calibration_parser = { path = "../lib/calibration_parser" }
-cube_game = { path = "../lib/cube_game" }

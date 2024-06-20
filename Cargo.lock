@@ -7,8 +7,13 @@ name = "advent-of-code-2023"
 version = "0.1.0"
 dependencies = [
  "calibration_parser",
+ "cube_game",
 ]
 
 [[package]]
 name = "calibration_parser"
+version = "0.1.0"
+
+[[package]]
+name = "cube_game"
 version = "0.1.0"
