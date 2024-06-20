@@ -42,9 +42,9 @@ impl FromStr for Color {
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s {
-            "red" => Ok(Color::Red),
-            "green" => Ok(Color::Green),
-            "blue" => Ok(Color::Blue),
+            "red" => Ok(Self::Red),
+            "green" => Ok(Self::Green),
+            "blue" => Ok(Self::Blue),
             // Invalid color, so we return an error
             s => Err(ColorError(s.to_string())),
         }
@@ -57,15 +57,15 @@ pub struct Cubes {
 }
 
 impl Cubes {
-    pub fn new(count: i32, color: Color) -> Self {
-        Cubes { color, count }
+    pub const fn new(count: i32, color: Color) -> Self {
+        Self { color, count }
     }
 
-    pub fn color(&self) -> &Color {
+    pub const fn color(&self) -> &Color {
         &self.color
     }
 
-    pub fn count(&self) -> &i32 {
+    pub const fn count(&self) -> &i32 {
         &self.count
     }
 }
