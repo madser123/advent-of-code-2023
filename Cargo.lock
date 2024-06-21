@@ -6,14 +6,14 @@ version = 3
 name = "advent-of-code-2023"
 version = "0.1.0"
 dependencies = [
- "calibration_parser",
  "cube_game",
+ "trebuchet",
 ]
 
 [[package]]
-name = "calibration_parser"
+name = "cube_game"
 version = "0.1.0"
 
 [[package]]
-name = "cube_game"
+name = "trebuchet"
 version = "0.1.0"
