@@ -8,3 +8,4 @@ edition = "2021"
 [dependencies]
 trebuchet = { path = "../lib/trebuchet" }
 cube_game = { path = "../lib/cube_game" }
+gondola_lift = { path = "../lib/gondola_lift" }

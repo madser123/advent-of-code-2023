@@ -7,11 +7,16 @@ name = "advent-of-code-2023"
 version = "0.1.0"
 dependencies = [
  "cube_game",
+ "gondola_lift",
  "trebuchet",
 ]
 
 [[package]]
 name = "cube_game"
+version = "0.1.0"
+
+[[package]]
+name = "gondola_lift"
 version = "0.1.0"
 
 [[package]]
