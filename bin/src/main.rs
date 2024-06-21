@@ -1,6 +1,7 @@
 #![allow(clippy::missing_panics_doc, missing_docs, clippy::missing_errors_doc)]
 
 use cube_game::{cube::Color, Cubes, Game};
+use gondola_lift::EngineSchematic;
 use trebuchet::Trebuchet;
 
 fn day_1() {
@@ -28,6 +29,15 @@ fn day_2() {
     println!("Result: {result}")
 }
 
+fn day_3() {
+    let input = std::fs::read_to_string("input_day3.txt").expect("Couldn't read input file");
+    let schem = EngineSchematic::new(&input).expect("Failed to create schematic");
+    let parts_sum = schem.get_parts().sum();
+    println!("Part-numbers sum: {parts_sum}");
+    let gear_ratio = schem.get_gear_ratio();
+    println!("Gear ration: {gear_ratio}");
+}
+
 fn main() {
-    day_2();
+    day_3();
 }
