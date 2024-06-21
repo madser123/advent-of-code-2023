@@ -22,7 +22,7 @@ fn day_2() {
 
     let result = Game::new(&input, limits)
         .expect("Failed to create game")
-        .get_id_sums();
+        .get_minimum_powers_sum();
     println!("Result: {result}")
 }
 

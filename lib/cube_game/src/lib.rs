@@ -30,7 +30,7 @@ impl Game {
         Ok(Self { rounds, limits })
     }
 
-    pub fn get_id_sums(&self) -> i32 {
+    pub fn get_ids_sum(&self) -> i32 {
         self.rounds
             .iter()
             .filter_map(|round| {
@@ -39,6 +39,13 @@ impl Game {
                 }
                 None
             })
+            .sum()
+    }
+
+    pub fn get_minimum_powers_sum(&self) -> i32 {
+        self.rounds
+            .iter()
+            .map(|round| round.get_minimum_set().power())
             .sum()
     }
 }
@@ -63,6 +70,14 @@ Game 5: 6 red, 1 blue, 3 green; 2 blue, 1 red, 2 green";
         limits.insert(Color::Blue, 14);
 
         let game = Game::new(GAME, limits).expect("Failed to create game");
-        assert_eq!(game.get_id_sums(), 8);
+        assert_eq!(game.get_ids_sum(), 8);
+    }
+
+    #[test]
+    fn test_solution_2() {
+        let limits = Limits::new();
+        let game = Game::new(GAME, limits).expect("Failed to create game");
+
+        assert_eq!(game.get_minimum_powers_sum(), 2286)
     }
 }

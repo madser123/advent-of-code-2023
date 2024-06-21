@@ -75,6 +75,33 @@ impl Round {
         })
     }
 
+    pub fn get_minimum_set(&self) -> Limits {
+        // Create set
+        let mut minimum_set = Limits::new();
+
+        // Iterate over draws
+        self.draws.iter().for_each(|draw| {
+            // Iterate over cubes
+            draw.cubes.iter().for_each(|cubes| {
+                // Get the count of current cubes
+                let cube_count = *cubes.count();
+                // Get the color from set, if its already there
+                minimum_set
+                    .entry(*cubes.color())
+                    // Check if the current count is lower than the cubes-count
+                    .and_modify(|count| {
+                        if *count < cube_count {
+                            *count = cube_count
+                        }
+                    })
+                    // Or insert the cubes-count if no entry was found
+                    .or_insert(*cubes.count());
+            })
+        });
+
+        minimum_set
+    }
+
     pub const fn id(&self) -> &i32 {
         &self.id
     }

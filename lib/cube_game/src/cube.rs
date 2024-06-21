@@ -11,6 +11,11 @@ impl Limits {
     pub fn new() -> Self {
         Self::default()
     }
+
+    pub fn power(&self) -> i32 {
+        // Multiply all values in the limits
+        self.values().product()
+    }
 }
 
 impl Deref for Limits {
@@ -30,7 +35,7 @@ impl DerefMut for Limits {
 #[derive(Debug)]
 pub struct ColorError(String);
 
-#[derive(PartialEq, Eq, Hash)]
+#[derive(PartialEq, Eq, Hash, Clone, Copy)]
 pub enum Color {
     Red,
     Green,
