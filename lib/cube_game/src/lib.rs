@@ -3,9 +3,10 @@ use std::str::FromStr;
 pub mod cube;
 pub mod round;
 
-pub use cube::Limits;
+pub use cube::Cubes;
 use round::{Round, RoundError};
 
+/// An error describing something wrong with the game
 #[derive(Debug)]
 pub struct GameError(RoundError);
 
@@ -15,13 +16,23 @@ impl From<RoundError> for GameError {
     }
 }
 
+impl std::fmt::Display for GameError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "Game error! {}", self.0)
+    }
+}
+
+impl std::error::Error for GameError {}
+
+/// A game of "cube conundrum"
 pub struct Game {
     rounds: Vec<Round>,
-    limits: Limits,
+    limits: Cubes,
 }
 
 impl Game {
-    pub fn new(string: &str, limits: Limits) -> Result<Self, GameError> {
+    /// Creates a new game
+    pub fn new(string: &str, limits: Cubes) -> Result<Self, GameError> {
         let rounds = string
             .split('\n')
             .map(Round::from_str)
@@ -64,7 +75,7 @@ Game 5: 6 red, 1 blue, 3 green; 2 blue, 1 red, 2 green";
 
     #[test]
     fn test_solution_1() {
-        let mut limits = Limits::new();
+        let mut limits = Cubes::new();
         limits.insert(Color::Red, 12);
         limits.insert(Color::Green, 13);
         limits.insert(Color::Blue, 14);
@@ -75,7 +86,7 @@ Game 5: 6 red, 1 blue, 3 green; 2 blue, 1 red, 2 green";
 
     #[test]
     fn test_solution_2() {
-        let limits = Limits::new();
+        let limits = Cubes::new();
         let game = Game::new(GAME, limits).expect("Failed to create game");
 
         assert_eq!(game.get_minimum_powers_sum(), 2286)

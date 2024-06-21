@@ -1,7 +1,7 @@
 #![allow(clippy::missing_panics_doc, missing_docs, clippy::missing_errors_doc)]
 
 use calibration_parser::parse_calibration_line;
-use cube_game::{cube::Color, Game, Limits};
+use cube_game::{cube::Color, Cubes, Game};
 
 fn day_1() {
     // read and parse input.txt
@@ -15,7 +15,7 @@ fn day_1() {
 
 fn day_2() {
     let input = std::fs::read_to_string("input_day2.txt").expect("Couldn't read input file");
-    let mut limits = Limits::new();
+    let mut limits = Cubes::new();
     limits.insert(Color::Red, 12);
     limits.insert(Color::Green, 13);
     limits.insert(Color::Blue, 14);
