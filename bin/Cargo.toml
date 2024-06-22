@@ -9,3 +9,4 @@ edition = "2021"
 trebuchet = { path = "../lib/trebuchet" }
 cube_game = { path = "../lib/cube_game" }
 gondola_lift = { path = "../lib/gondola_lift" }
+scratchcard = { path = "../lib/scratchcard" }

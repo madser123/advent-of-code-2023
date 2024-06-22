@@ -8,6 +8,7 @@ version = "0.1.0"
 dependencies = [
  "cube_game",
  "gondola_lift",
+ "scratchcard",
  "trebuchet",
 ]
 
@@ -17,6 +18,10 @@ version = "0.1.0"
 
 [[package]]
 name = "gondola_lift"
+version = "0.1.0"
+
+[[package]]
+name = "scratchcard"
 version = "0.1.0"
 
 [[package]]
