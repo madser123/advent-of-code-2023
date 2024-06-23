@@ -1,4 +1,4 @@
-use std::{collections::HashMap, num::ParseIntError, ops::Range, str::FromStr, sync::Arc};
+use std::{collections::BTreeMap, num::ParseIntError, ops::Range, str::FromStr, sync::Arc};
 
 #[derive(Debug)]
 pub enum ParseAlmanacError {
@@ -27,9 +27,9 @@ pub enum ValueType {
 }
 
 impl ValueType {
-    pub fn next_variant(&self) -> Self {
+    pub const fn next_variant(&self) -> Option<Self> {
         use ValueType::*;
-        match *self {
+        let next = match *self {
             Seed => Soil,
             Soil => Fertilizer,
             Fertilizer => Water,
@@ -37,8 +37,10 @@ impl ValueType {
             Light => Temperature,
             Temperature => Humidity,
             Humidity => Location,
-            Location => unreachable!("Tried to get next variant of Location. Fix the code."),
-        }
+            Location => return None,
+        };
+
+        Some(next)
     }
 }
 
@@ -54,8 +56,36 @@ impl TranslationValue {
     }
 }
 
+impl PartialOrd for TranslationValue {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl Ord for TranslationValue {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        use std::cmp::Ordering::*;
+
+        let type_compare = self.typ.cmp(&other.typ);
+
+        if type_compare != Equal {
+            return type_compare;
+        }
+
+        // self range is before other range, so it is less
+        if self.range.end <= other.range.start {
+            Less
+        // self range is after other range, so it is greater
+        } else if self.range.start >= other.range.end {
+            Greater
+        } else {
+            Equal
+        }
+    }
+}
+
 #[derive(Debug)]
-pub struct TranslationMap(HashMap<TranslationValue, TranslationValue>);
+pub struct TranslationMap(BTreeMap<TranslationValue, TranslationValue>);
 
 impl TranslationMap {
     fn add_translation(&mut self, from: TranslationValue, to: TranslationValue) {
@@ -63,30 +93,56 @@ impl TranslationMap {
     }
 
     pub fn get_location_of_seed(&self, seed: u64) -> u64 {
-        self.translate(ValueType::Seed, seed, ValueType::Location)
+        self.walk(ValueType::Seed, seed..seed)
     }
 
-    pub fn translate(&self, source_type: ValueType, source_value: u64, destination: ValueType) -> u64 {
-        if source_type > destination {
-            panic!("Can't translate backwards")
+    fn translate_range(&self, source_type: ValueType, source_range: Range<u64>) -> u64 {
+        self.walk(source_type, source_range)
+    }
+
+    fn walk(&self, from: ValueType, range: Range<u64>) -> u64 {
+        // Iterate over keys for current valuetype (Seed, Soil, etc..) where the range is hitting
+        let keys = self
+            .0
+            .iter()
+            .filter(|(key, _)| key.typ == from && range.start <= key.range.end && key.range.start <= range.end)
+            .collect::<Vec<_>>();
+
+        // Check if next variant exists
+        let Some(next) = from.next_variant() else {
+            // We arrived at Location-variant, so return the beginning of the range
+            return range.start;
+        };
+
+        // No keys found, so we just walk the next variant with the same range
+        if keys.is_empty() {
+            return self.walk(next, range);
         }
 
-        let mut current_type = source_type;
-        let mut current_id = source_value;
+        let mut lowest_value = u64::MAX;
 
-        while current_type != destination {
-            (current_id, current_type) = self
-                .0
-                .iter()
-                .find(|(key, _)| key.typ == current_type && key.range.contains(&current_id))
-                .map(|(key, value)| {
-                    let key_diff = key.range.start.abs_diff(current_id);
-                    (value.range.start + key_diff, value.typ)
-                })
-                .unwrap_or((current_id, current_type.next_variant()));
+        // For each key, test the lowest value possible first, and keep doing so, until the whole range has been checked.
+        for (key, value) in keys {
+            // Diff between value and key
+            let diff = value.range.start.abs_diff(key.range.start);
+
+            // Get the range translation
+            let new_range = if key.range.start < value.range.start {
+                (key.range.start.max(range.start) + diff)..(key.range.end.min(range.end) + diff)
+            } else {
+                (key.range.start.max(range.start) - diff)..(key.range.end.min(range.end) - diff)
+            };
+
+            // Walk the next variant with the new range
+            let low_value = self.walk(next, new_range);
+
+            // Check if the value returned was lower
+            if low_value < lowest_value {
+                lowest_value = low_value
+            }
         }
 
-        current_id
+        lowest_value
     }
 }
 
@@ -98,28 +154,20 @@ pub struct Almanac {
 
 impl Almanac {
     pub fn get_lowest_location_of_seed_ranges(&self) -> Option<u64> {
-        let mut threads = Vec::new();
+        let mut min = u64::MAX;
 
         for chunk in self.seeds.chunks(2) {
             let range = chunk[0]..(chunk[0] + chunk[1]);
             let translation = self.translation.clone();
 
-            println!("Spawned a thread on seeds: {range:?}");
+            let result = translation.translate_range(ValueType::Seed, range.clone());
 
-            threads.push(std::thread::spawn(move || {
-                let result = range
-                    .clone()
-                    .map(|seed| translation.get_location_of_seed(seed))
-                    .collect::<Vec<u64>>();
-                println!("Thread {range:?} finished!");
-                result
-            }));
+            if result < min {
+                min = result;
+            };
         }
 
-        threads
-            .into_iter()
-            .flat_map(|thread| thread.join().expect("Thread failed"))
-            .min()
+        Some(min)
     }
 
     pub fn get_lowest_location(&self) -> Option<u64> {
@@ -150,7 +198,7 @@ impl FromStr for Almanac {
         // Remove empty line after seeds
         lines.next();
 
-        let mut map = TranslationMap(HashMap::new());
+        let mut map = TranslationMap(BTreeMap::new());
 
         let maps = lines
             // Replace newline seperators with pipes, for easy splitting.
@@ -204,6 +252,33 @@ impl FromStr for Almanac {
 
                 Ok::<(), ParseAlmanacError>(())
             })?;
+
+            // Fill in the blank spaces
+            let keys = map
+                .0
+                .keys()
+                .filter(|key| key.typ == source)
+                .cloned()
+                .collect::<Vec<_>>();
+
+            let mut from = 0;
+
+            for key in keys {
+                let value = key.range.start;
+
+                if value == 0 {
+                    from = value;
+                    continue;
+                }
+
+                let new_key = TranslationValue::new(source, from, value);
+
+                if map.0.get(&new_key).is_none() {
+                    map.add_translation(new_key, TranslationValue::new(destination, from, value));
+                }
+
+                from = value;
+            }
         }
 
         Ok(Self {
@@ -265,7 +340,6 @@ humidity-to-location map:
             .get_lowest_location_of_seed_ranges()
             .expect("Failed to get lowest location");
 
-        println!("{almanac:#?}");
         assert_eq!(lowest_location_of_range, 46);
     }
 }
