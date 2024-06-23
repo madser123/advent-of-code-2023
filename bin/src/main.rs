@@ -2,6 +2,7 @@
 
 use std::str::FromStr;
 
+use almanac::Almanac;
 use cube_game::{cube::Color, Cubes, Game};
 use gondola_lift::EngineSchematic;
 use scratchcard::ScratchCards;
@@ -62,6 +63,20 @@ fn day_4() {
     println!("Total cards won: {copies}");
 }
 
+fn day_5() {
+    let input = get_input!("day5");
+    let almanac = Almanac::from_str(&input).expect("Failed to create almanac");
+    let lowest_location = almanac.get_lowest_location().expect("Lowest location not found");
+
+    println!("Lowest location: {lowest_location}");
+
+    let lowest_location_seed_range = almanac
+        .get_lowest_location_of_seed_ranges()
+        .expect("Lowest location of ranges not found");
+
+    println!("Lowest location of ranges: {lowest_location_seed_range}");
+}
+
 fn main() {
-    day_4();
+    day_5();
 }
