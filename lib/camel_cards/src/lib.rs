@@ -1,3 +1,9 @@
+//! I chose to use a const-generic for solution 2 in this libary.
+//!
+//! The `JOKERS` const-generic on each of the types implementing it, represents
+//! wether or not we use jokers (true = Use jokers, false = Don't use jokers)
+//!
+
 use std::{
     collections::{BTreeMap, BTreeSet},
     num::{ParseIntError, TryFromIntError},
@@ -79,39 +85,50 @@ pub struct CardCount<const JOKERS: bool>(BTreeMap<Card<JOKERS>, u16>);
 
 impl<const JOKERS: bool> CardCount<JOKERS> {
     pub fn new(cards: &[Card<JOKERS>]) -> Result<Self, CardsError> {
+        // Create empty map
         let mut counts = Self::default();
 
+        // Count all cards
         cards.iter().for_each(|card| counts.count(card));
 
+        // If jokers are enabled, we need to check some things:
         if JOKERS {
+            // If the highest non-joker card doesn't exist, it must be all jokers, so we just return
             let Some(highest_card) = counts.highest_non_joker_card() else {
                 return Ok(counts);
             };
 
+            // Get the count of jokers in the cards
             let joker_count = counts.get(&Card::<JOKERS>::Joker).copied().unwrap_or(0);
 
+            // Remove jokers from the map, as they will still be represented in the hand,
+            // but shouldn't be represented in the counts.
             counts.remove(&Card::<JOKERS>::Joker);
 
-            let highest_value = counts.get_mut(&highest_card).ok_or(CardsError::GetHighCount)?;
-
-            *highest_value += joker_count;
+            // Add the jokers to the highest non-joker card count
+            counts.entry(highest_card).and_modify(|val| *val += joker_count);
         };
 
         Ok(counts)
     }
 
+    /// Adds a card to the counter if no entry is found.
+    /// Increments the counter if the card is found.
     pub fn count(&mut self, card: &Card<JOKERS>) {
         self.entry(*card).and_modify(|count| *count += 1).or_insert(1);
     }
 
+    /// Returns the lowest count in the counter
     pub fn lowest(&self) -> Result<&u16, CardsError> {
         self.values().min().ok_or(CardsError::GetLowCount)
     }
 
+    /// Returns the highest count in the counter
     pub fn highest(&self) -> Result<&u16, CardsError> {
         self.values().max().ok_or(CardsError::GetHighCount)
     }
 
+    /// Returns the highest counted non-joker card
     fn highest_non_joker_card(&self) -> Option<Card<JOKERS>> {
         self.iter()
             .filter(|(card, _)| **card != Card::<JOKERS>::Joker)
@@ -160,8 +177,10 @@ impl<const JOKERS: bool> Hand<JOKERS> {
     fn get_hand_type(cards: &[Card<JOKERS>; 5]) -> Result<HandType, CardsError> {
         use HandType::*;
 
+        // Get the card type counts
         let counts = CardCount::new(cards)?;
 
+        // Match the card counts, to find out which hand-type we have
         let typ = match counts.len() {
             1 => FiveOfAKind,
             2 => {
@@ -188,6 +207,7 @@ impl<const JOKERS: bool> Hand<JOKERS> {
         Ok(typ)
     }
 }
+
 impl<const JOKERS: bool> PartialOrd for Hand<JOKERS> {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
         Some(self.cmp(other))
@@ -199,13 +219,16 @@ impl<const JOKERS: bool> Ord for Hand<JOKERS> {
 
         let typ_cmp = self.typ.cmp(&other.typ);
 
+        // If hand-types aren't equal, return ordering
         if typ_cmp != Equal {
             return typ_cmp;
         }
 
+        // When hand types are equal, we compare cards
         for i in 0..5 {
             let card_cmp = self.cards[i].cmp(&other.cards[i]);
 
+            // Early return card-ordering if cards aren't equal
             if card_cmp != Equal {
                 return card_cmp;
             }
@@ -237,6 +260,7 @@ pub struct Hands<const JOKERS: bool>(BTreeSet<Hand<JOKERS>>);
 
 impl<const JOKERS: bool> Hands<JOKERS> {
     pub fn get_total_winnings(&self) -> u64 {
+        // Zip ranks with the values, and multiply
         (1u64..).zip(self.0.iter()).map(|(rank, hand)| rank * hand.bid).sum()
     }
 }
