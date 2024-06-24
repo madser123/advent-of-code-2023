@@ -1,7 +1,4 @@
-use std::{
-    num::{ParseIntError, TryFromIntError},
-    str::FromStr,
-};
+use std::num::ParseIntError;
 
 pub struct Race {
     time: u64,
@@ -17,21 +14,39 @@ impl Race {
         boat.distance_traveled > self.distance
     }
 
-    pub fn find_winning_conditions(&self) -> Vec<u64> {
+    pub fn find_winning_conditions_amount(&self) -> u64 {
         // We are not interested in holding the button for 0 ms,
         // as this would result in 0 distance
-        let range = 1..self.time;
+        let mut start = 1;
+        let mut end = self.time;
 
-        range
-            .filter(|hold_ms| {
-                let mut boat = Boat::default();
+        loop {
+            let mut boat = Boat::default();
 
-                boat.hold_button_for(*hold_ms);
-                boat.travel_for(self.time - hold_ms);
+            boat.hold_button_for(start);
+            boat.travel_for(self.time - start);
 
-                self.has_won(&boat)
-            })
-            .collect()
+            if self.has_won(&boat) {
+                break;
+            }
+
+            start += 1;
+        }
+
+        loop {
+            let mut boat = Boat::default();
+
+            boat.hold_button_for(end);
+            boat.travel_for(self.time - end);
+
+            if self.has_won(&boat) {
+                break;
+            }
+
+            end -= 1;
+        }
+
+        start.abs_diff(end) + 1
     }
 }
 
@@ -56,11 +71,8 @@ pub struct Races {
 }
 
 impl Races {
-    pub fn get_winning_product(&self) -> usize {
-        self.races
-            .iter()
-            .map(|race| race.find_winning_conditions().len())
-            .product()
+    pub fn get_winning_product(&self) -> u64 {
+        self.races.iter().map(Race::find_winning_conditions_amount).product()
     }
 
     pub fn from_single_race(races: &str) -> Self {
