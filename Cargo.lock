@@ -7,6 +7,7 @@ name = "advent-of-code-2023"
 version = "0.1.0"
 dependencies = [
  "almanac",
+ "boat_race",
  "cube_game",
  "gondola_lift",
  "scratchcard",
@@ -15,6 +16,10 @@ dependencies = [
 
 [[package]]
 name = "almanac"
+version = "0.1.0"
+
+[[package]]
+name = "boat_race"
 version = "0.1.0"
 
 [[package]]
