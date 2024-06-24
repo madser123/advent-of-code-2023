@@ -92,15 +92,15 @@ impl TranslationMap {
         self.0.insert(from, to);
     }
 
-    pub fn get_location_of_seed(&self, seed: u64) -> u64 {
+    pub fn get_location_of_seed(&self, seed: u64) -> Option<u64> {
         self.walk(ValueType::Seed, seed..seed)
     }
 
-    fn translate_range(&self, source_type: ValueType, source_range: Range<u64>) -> u64 {
+    fn translate_range(&self, source_type: ValueType, source_range: Range<u64>) -> Option<u64> {
         self.walk(source_type, source_range)
     }
 
-    fn walk(&self, from: ValueType, range: Range<u64>) -> u64 {
+    fn walk(&self, from: ValueType, range: Range<u64>) -> Option<u64> {
         // Iterate over keys for current valuetype (Seed, Soil, etc..) where the range is hitting
         let keys = self
             .0
@@ -111,7 +111,7 @@ impl TranslationMap {
         // Check if next variant exists
         let Some(next) = from.next_variant() else {
             // We arrived at Location-variant, so return the beginning of the range
-            return range.start;
+            return Some(range.start);
         };
 
         // No keys found, so we just walk the next variant with the same range
@@ -119,30 +119,24 @@ impl TranslationMap {
             return self.walk(next, range);
         }
 
-        let mut lowest_value = u64::MAX;
-
         // For each key, test the lowest value possible first, and keep doing so, until the whole range has been checked.
-        for (key, value) in keys {
-            // Diff between value and key
-            let diff = value.range.start.abs_diff(key.range.start);
+        keys.iter()
+            .flat_map(|(key, value)| {
+                // Diff between value and key
+                let diff = value.range.start.abs_diff(key.range.start);
 
-            // Get the range translation
-            let new_range = if key.range.start < value.range.start {
-                (key.range.start.max(range.start) + diff)..(key.range.end.min(range.end) + diff)
-            } else {
-                (key.range.start.max(range.start) - diff)..(key.range.end.min(range.end) - diff)
-            };
+                // Get the range translation
+                let new_range = if key.range.start < value.range.start {
+                    (key.range.start.max(range.start) + diff)..(key.range.end.min(range.end) + diff)
+                } else {
+                    (key.range.start.max(range.start) - diff)..(key.range.end.min(range.end) - diff)
+                };
 
-            // Walk the next variant with the new range
-            let low_value = self.walk(next, new_range);
-
-            // Check if the value returned was lower
-            if low_value < lowest_value {
-                lowest_value = low_value
-            }
-        }
-
-        lowest_value
+                // Walk the next variant with the new range
+                self.walk(next, new_range)
+            })
+            // Return the lowest value found
+            .min()
     }
 }
 
@@ -160,7 +154,7 @@ impl Almanac {
             let range = chunk[0]..(chunk[0] + chunk[1]);
             let translation = self.translation.clone();
 
-            let result = translation.translate_range(ValueType::Seed, range.clone());
+            let result = translation.translate_range(ValueType::Seed, range.clone())?;
 
             if result < min {
                 min = result;
@@ -173,7 +167,7 @@ impl Almanac {
     pub fn get_lowest_location(&self) -> Option<u64> {
         self.seeds
             .iter()
-            .map(|seed| self.translation.get_location_of_seed(*seed))
+            .flat_map(|seed| self.translation.get_location_of_seed(*seed))
             .min()
     }
 }
@@ -273,7 +267,7 @@ impl FromStr for Almanac {
 
                 let new_key = TranslationValue::new(source, from, value);
 
-                if map.0.get(&new_key).is_none() {
+                if !map.0.contains_key(&new_key) {
                     map.add_translation(new_key, TranslationValue::new(destination, from, value));
                 }
 

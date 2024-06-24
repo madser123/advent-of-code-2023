@@ -2,12 +2,12 @@ use std::ops::{Deref, DerefMut};
 
 use crate::SchematicCoordinate;
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct Parts(Vec<Part>);
 
 impl Parts {
-    pub const fn new() -> Self {
-        Self(Vec::new())
+    pub fn new() -> Self {
+        Self::default()
     }
 
     pub fn sum(&self) -> i32 {
