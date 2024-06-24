@@ -3,6 +3,7 @@
 use std::str::FromStr;
 
 use almanac::Almanac;
+use boat_race::Races;
 use cube_game::{cube::Color, Cubes, Game};
 use gondola_lift::EngineSchematic;
 use scratchcard::ScratchCards;
@@ -77,6 +78,19 @@ fn day_5() {
     println!("Lowest location of ranges: {lowest_location_seed_range}");
 }
 
+fn day_6() {
+    let input = get_input!("day6");
+    let races = Races::from_multiple_races(&input);
+    let winning_product = races.get_winning_product();
+
+    println!("Winning product for multiple races: {winning_product}");
+
+    let race = Races::from_single_race(&input);
+    let winning_product = race.get_winning_product();
+
+    println!("Winning product for single race: {winning_product}");
+}
+
 fn main() {
-    day_5();
+    day_6();
 }

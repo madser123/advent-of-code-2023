@@ -4,12 +4,12 @@ use std::{
 };
 
 pub struct Race {
-    time: i32,
-    distance: i32,
+    time: u64,
+    distance: u64,
 }
 
 impl Race {
-    pub const fn new(time: i32, distance: i32) -> Self {
+    pub const fn new(time: u64, distance: u64) -> Self {
         Self { time, distance }
     }
 
@@ -17,7 +17,7 @@ impl Race {
         boat.distance_traveled > self.distance
     }
 
-    pub fn find_winning_conditions(&self) -> Vec<i32> {
+    pub fn find_winning_conditions(&self) -> Vec<u64> {
         // We are not interested in holding the button for 0 ms,
         // as this would result in 0 distance
         let range = 1..self.time;
@@ -37,16 +37,16 @@ impl Race {
 
 #[derive(Default)]
 pub struct Boat {
-    speed: i32,
-    distance_traveled: i32,
+    speed: u64,
+    distance_traveled: u64,
 }
 
 impl Boat {
-    pub fn hold_button_for(&mut self, millis: i32) {
+    pub fn hold_button_for(&mut self, millis: u64) {
         self.speed += millis
     }
 
-    pub fn travel_for(&mut self, millis: i32) {
+    pub fn travel_for(&mut self, millis: u64) {
         self.distance_traveled = self.speed * millis
     }
 }
@@ -62,24 +62,39 @@ impl Races {
             .map(|race| race.find_winning_conditions().len())
             .product()
     }
-}
 
-impl FromStr for Races {
-    type Err = ();
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let numbers = s
+    pub fn from_single_race(races: &str) -> Self {
+        let numbers = races
             .lines()
             .map(|line| {
                 line.split(':')
                     .last()
                     .expect("Failed to get numbers")
                     .split_ascii_whitespace()
-                    .map(|n| n.parse::<i32>())
-                    .collect::<Result<Vec<i32>, ParseIntError>>()
+                    .collect::<String>()
+                    .parse::<u64>()
+                    .expect("Failed to parse number")
+            })
+            .collect::<Vec<u64>>();
+
+        let races = vec![Race::new(numbers[0], numbers[1])];
+
+        Self { races }
+    }
+
+    pub fn from_multiple_races(races: &str) -> Self {
+        let numbers = races
+            .lines()
+            .map(|line| {
+                line.split(':')
+                    .last()
+                    .expect("Failed to get numbers")
+                    .split_ascii_whitespace()
+                    .map(|n| n.parse::<u64>())
+                    .collect::<Result<Vec<u64>, ParseIntError>>()
                     .expect("Failed to parse numbers")
             })
-            .collect::<Vec<Vec<i32>>>();
+            .collect::<Vec<Vec<u64>>>();
 
         let races = numbers[0]
             .iter()
@@ -87,7 +102,7 @@ impl FromStr for Races {
             .map(|x| Race::new(*x.0, *x.1))
             .collect::<Vec<Race>>();
 
-        Ok(Self { races })
+        Self { races }
     }
 }
 
@@ -99,10 +114,14 @@ mod tests {
 Distance:  9  40  200";
 
     #[test]
-    fn it_works() {
-        let product = Races::from_str(EXAMPLE)
-            .expect("Failed to parse race")
-            .get_winning_product();
+    fn solution_1() {
+        let product = Races::from_multiple_races(EXAMPLE).get_winning_product();
         assert_eq!(product, 288)
+    }
+
+    #[test]
+    fn solution_2() {
+        let product = Races::from_single_race(EXAMPLE).get_winning_product();
+        assert_eq!(product, 71503);
     }
 }
