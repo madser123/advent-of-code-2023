@@ -33,20 +33,6 @@ impl Race {
             start += 1;
         }
 
-        // Try to decrement end until we win and stop loop once we do
-        //loop {
-        //    let mut boat = Boat::default();
-        //
-        //    boat.hold_button_for(end);
-        //    boat.travel_for(self.time - end);
-        //
-        //    if self.has_won(&boat) {
-        //        break;
-        //    }
-        //
-        //    end -= 1;
-        //}
-
         start.abs_diff(self.time - start) + 1
     }
 }
