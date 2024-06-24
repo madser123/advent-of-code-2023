@@ -9,6 +9,20 @@ use gondola_lift::EngineSchematic;
 use scratchcard::ScratchCards;
 use trebuchet::Trebuchet;
 
+macro_rules! time {
+    ($name:expr, $block:block) => {{
+        let __start = std::time::Instant::now();
+        let __result = { $block };
+        let __duration = __start.elapsed();
+        println!("[TIMING] '{}' took: {:?}", $name, __duration);
+        __result
+    }};
+
+    ($name:expr, $fn:ident) => {
+        time!($name, { $fn() })
+    };
+}
+
 macro_rules! get_input {
     ($day:tt) => {
         std::fs::read_to_string(&format!("inputs/{}.txt", $day)).expect("Couldn't read input-file!")
@@ -104,10 +118,12 @@ fn day_6() {
 
 fn main() {
     println!("## Advent of Code 2023 solutions ##");
-    day_1();
-    day_2();
-    day_3();
-    day_4();
-    day_5();
-    day_6();
+    time!("All", {
+        time!("Day 1", day_1);
+        time!("Day 2", day_2);
+        time!("Day 3", day_3);
+        time!("Day 4", day_4);
+        time!("Day 5", day_5);
+        time!("Day 6", day_6);
+    })
 }
