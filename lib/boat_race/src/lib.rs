@@ -20,6 +20,7 @@ impl Race {
         let mut start = 1;
         let mut end = self.time - 1;
 
+        // Try to increment start until we win and stop loop once we do
         loop {
             let mut boat = Boat::default();
 
@@ -33,6 +34,7 @@ impl Race {
             start += 1;
         }
 
+        // Try to decrement end until we win and stop loop once we do
         loop {
             let mut boat = Boat::default();
 
