@@ -84,8 +84,8 @@ impl ScratchCard {
             .count()
     }
 
-    pub fn add_copy(&mut self) {
-        self.amount += 1;
+    pub fn add_copies(&mut self, copies: usize) {
+        self.amount += copies;
     }
 }
 
@@ -113,12 +113,7 @@ impl ScratchCards {
             if winnings > 0 {
                 let range = (key + 1)..=(key + winnings);
                 let amount = *card.amount();
-
-                for _ in 0..amount {
-                    range
-                        .clone()
-                        .for_each(|i| self.0.get_mut(&i).map(|card| card.add_copy()).unwrap_or(()))
-                }
+                range.for_each(|i| self.0.get_mut(&i).map(|card| card.add_copies(amount)).unwrap_or(()))
             }
         }
 
