@@ -47,28 +47,25 @@ impl FromStr for CalibrationValue {
         // Get all number strings as numbers
         for (i, number_string) in NUMBER_STRINGS.iter().enumerate() {
             s.match_indices(number_string)
-                .for_each(|(index, _)| assorted.push((index, i)));
+                .for_each(|(index, _)| assorted.push((index, i.to_string())));
         }
 
         // Extract all numeric characters
-        s.match_indices(char::is_numeric)
-            .try_for_each(|(index, number)| {
-                assorted.push((index, number.parse()?));
-                Ok::<(), CalibrationError>(()) // Infer error type
-            })?;
+        s.match_indices(char::is_numeric).for_each(|(index, number)| {
+            assorted.push((index, number.to_string()));
+        });
 
         // Sort by index
         assorted.sort_by_key(|(index, _)| *index);
 
-        // Remove indexes
-        let mut numbers = assorted.iter().map(|(_, number)| number);
+        let mut numbers = assorted.iter();
 
         // Get first and last number
         let first = numbers.next().ok_or(CalibrationError::NoNumbers)?;
         let last = numbers.last().unwrap_or(first);
 
         // Format numbers
-        let number = format!("{first}{last}").parse()?;
+        let number = format!("{}{}", first.1, last.1).parse()?;
 
         Ok(Self { number })
     }
