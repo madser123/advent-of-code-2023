@@ -12,3 +12,4 @@ gondola_lift = { path = "../lib/gondola_lift" }
 scratchcard = { path = "../lib/scratchcard" }
 almanac = { path = "../lib/almanac" }
 boat_race = { path = "../lib/boat_race" }
+camel_cards = { path = "../lib/camel_cards" }

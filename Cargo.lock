@@ -8,6 +8,7 @@ version = "0.1.0"
 dependencies = [
  "almanac",
  "boat_race",
+ "camel_cards",
  "cube_game",
  "gondola_lift",
  "scratchcard",
@@ -20,6 +21,10 @@ version = "0.1.0"
 
 [[package]]
 name = "boat_race"
+version = "0.1.0"
+
+[[package]]
+name = "camel_cards"
 version = "0.1.0"
 
 [[package]]

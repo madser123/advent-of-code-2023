@@ -4,6 +4,7 @@ use std::str::FromStr;
 
 use almanac::Almanac;
 use boat_race::Races;
+use camel_cards::Hands;
 use cube_game::{cube::Color, Cubes, Game};
 use gondola_lift::EngineSchematic;
 use scratchcard::ScratchCards;
@@ -12,10 +13,11 @@ use trebuchet::Trebuchet;
 macro_rules! time {
     ($name:expr, $block:block) => {{
         let __start = std::time::Instant::now();
-        let __result = { $block };
+        {
+            $block
+        };
         let __duration = __start.elapsed();
         println!("[TIMING] '{}' took: {:?}", $name, __duration);
-        __result
     }};
 
     ($name:expr, $fn:ident) => {
@@ -23,16 +25,22 @@ macro_rules! time {
     };
 }
 
-macro_rules! get_input {
-    ($day:tt) => {
-        std::fs::read_to_string(&format!("inputs/{}.txt", $day)).expect("Couldn't read input-file!")
+macro_rules! day {
+    ($day:tt, $fn:ident) => {
+        time!(format!("Day {}", $day), {
+            println!("# Day {}", $day);
+            $fn(get_input!($day));
+        })
     };
 }
 
-fn day_1() {
-    println!("# Day 1");
+macro_rules! get_input {
+    ($day:tt) => {
+        std::fs::read_to_string(&format!("inputs/day{}.txt", $day)).expect("Couldn't read input-file!")
+    };
+}
 
-    let input = get_input!("day1");
+fn day1(input: String) {
     let result = Trebuchet::new(&input)
         .expect("Failed to create trebuchet")
         .get_calibration_sum();
@@ -40,11 +48,7 @@ fn day_1() {
     println!("Result: {result}");
 }
 
-fn day_2() {
-    println!("# Day 2");
-
-    let input = get_input!("day2");
-
+fn day2(input: String) {
     let mut limits = Cubes::new();
     limits.insert(Color::Red, 12);
     limits.insert(Color::Green, 13);
@@ -57,10 +61,7 @@ fn day_2() {
     println!("Result: {result}")
 }
 
-fn day_3() {
-    println!("# Day 3");
-
-    let input = get_input!("day3");
+fn day3(input: String) {
     let schem = EngineSchematic::new(&input).expect("Failed to create schematic");
 
     let parts_sum = schem.get_parts().sum();
@@ -70,10 +71,7 @@ fn day_3() {
     println!("Gear ration: {gear_ratio}");
 }
 
-fn day_4() {
-    println!("# Day 4");
-
-    let input = get_input!("day4");
+fn day4(input: String) {
     let mut cards = ScratchCards::from_str(&input).expect("Failed to create scratchcards!");
     let total = cards.get_points_worth();
 
@@ -85,10 +83,7 @@ fn day_4() {
     println!("Total cards won: {copies}");
 }
 
-fn day_5() {
-    println!("# Day 5");
-
-    let input = get_input!("day5");
+fn day5(input: String) {
     let almanac = Almanac::from_str(&input).expect("Failed to create almanac");
     let lowest_location = almanac.get_lowest_location().expect("Lowest location not found");
 
@@ -101,10 +96,7 @@ fn day_5() {
     println!("Lowest location of ranges: {lowest_location_seed_range}");
 }
 
-fn day_6() {
-    println!("# Day 6");
-
-    let input = get_input!("day6");
+fn day6(input: String) {
     let races = Races::from_multiple_races(&input);
     let winning_product = races.get_winning_product();
 
@@ -116,14 +108,27 @@ fn day_6() {
     println!("Winning product for single race: {winning_product}");
 }
 
+fn day7(input: String) {
+    let hands = Hands::<false>::from_str(&input).expect("Failed parsing hands");
+    let total_winnings = hands.get_total_winnings();
+
+    println!("Total winnings: {total_winnings}");
+
+    let hands = Hands::<true>::from_str(&input).expect("Failed parsing hands with jokers");
+    let total_joker_winnings = hands.get_total_winnings();
+
+    println!("Total winnings with jokers: {total_joker_winnings}");
+}
+
 fn main() {
     println!("## Advent of Code 2023 solutions ##");
     time!("All", {
-        time!("Day 1", day_1);
-        time!("Day 2", day_2);
-        time!("Day 3", day_3);
-        time!("Day 4", day_4);
-        time!("Day 5", day_5);
-        time!("Day 6", day_6);
+        day!(1, day1);
+        day!(2, day2);
+        day!(3, day3);
+        day!(4, day4);
+        day!(5, day5);
+        day!(6, day6);
+        day!(7, day7);
     })
 }
