@@ -11,7 +11,7 @@ use trebuchet::Trebuchet;
 
 macro_rules! get_input {
     ($day:tt) => {
-        std::fs::read_to_string(&format!("input_{}.txt", $day)).expect("Couldn't read input-file!")
+        std::fs::read_to_string(&format!("inputs/{}.txt", $day)).expect("Couldn't read input-file!")
     };
 }
 
