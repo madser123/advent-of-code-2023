@@ -18,7 +18,7 @@ impl Race {
         // We are not interested in holding the button for 0 ms,
         // as this would result in 0 distance
         let mut start = 1;
-        let mut end = self.time;
+        let mut end = self.time - 1;
 
         loop {
             let mut boat = Boat::default();
