@@ -33,6 +33,8 @@ impl Race {
             start += 1;
         }
 
+        // Get the absolute difference between the start and the (max_time - start) as this + 1 would result
+        // in the maximum amount of time we can hold the button, and still win.
         start.abs_diff(self.time - start) + 1
     }
 }
