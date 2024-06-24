@@ -18,7 +18,6 @@ impl Race {
         // We are not interested in holding the button for 0 ms,
         // as this would result in 0 distance
         let mut start = 1;
-        let mut end = self.time - 1;
 
         // Try to increment start until we win and stop loop once we do
         loop {
@@ -35,20 +34,20 @@ impl Race {
         }
 
         // Try to decrement end until we win and stop loop once we do
-        loop {
-            let mut boat = Boat::default();
+        //loop {
+        //    let mut boat = Boat::default();
+        //
+        //    boat.hold_button_for(end);
+        //    boat.travel_for(self.time - end);
+        //
+        //    if self.has_won(&boat) {
+        //        break;
+        //    }
+        //
+        //    end -= 1;
+        //}
 
-            boat.hold_button_for(end);
-            boat.travel_for(self.time - end);
-
-            if self.has_won(&boat) {
-                break;
-            }
-
-            end -= 1;
-        }
-
-        start.abs_diff(end) + 1
+        start.abs_diff(self.time - start) + 1
     }
 }
 
