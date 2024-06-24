@@ -246,6 +246,33 @@ impl FromStr for Almanac {
 
                 Ok::<(), ParseAlmanacError>(())
             })?;
+
+            // Fill in the blank spaces
+            let keys = map
+                .0
+                .keys()
+                .filter(|key| key.typ == source)
+                .cloned()
+                .collect::<Vec<_>>();
+
+            let mut from = 0;
+
+            for key in keys {
+                let value = key.range.start;
+
+                if value == 0 {
+                    from = value;
+                    continue;
+                }
+
+                let new_key = TranslationValue::new(source, from, value);
+
+                if !map.0.contains_key(&new_key) {
+                    map.add_translation(new_key, TranslationValue::new(destination, from, value));
+                }
+
+                from = value;
+            }
         }
 
         Ok(Self {
