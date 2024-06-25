@@ -13,3 +13,4 @@ scratchcard = { path = "../lib/scratchcard" }
 almanac = { path = "../lib/almanac" }
 boat_race = { path = "../lib/boat_race" }
 camel_cards = { path = "../lib/camel_cards" }
+network_nodes = { path = "../lib/network_nodes" }

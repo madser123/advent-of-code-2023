@@ -11,6 +11,7 @@ dependencies = [
  "camel_cards",
  "cube_game",
  "gondola_lift",
+ "network_nodes",
  "scratchcard",
  "trebuchet",
 ]
@@ -33,6 +34,10 @@ version = "0.1.0"
 
 [[package]]
 name = "gondola_lift"
+version = "0.1.0"
+
+[[package]]
+name = "network_nodes"
 version = "0.1.0"
 
 [[package]]

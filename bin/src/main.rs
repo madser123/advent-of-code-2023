@@ -7,6 +7,7 @@ use boat_race::Races;
 use camel_cards::Hands;
 use cube_game::{cube::Color, Cubes, Game};
 use gondola_lift::EngineSchematic;
+use network_nodes::{Network, Node};
 use scratchcard::ScratchCards;
 use trebuchet::Trebuchet;
 
@@ -120,6 +121,20 @@ fn day7(input: String) {
     println!("Total winnings with jokers: {total_joker_winnings}");
 }
 
+fn day8(input: String) {
+    let network = Network::from_str(&input).expect("Failed parsing network");
+    let find = Node::from_str("ZZZ").expect("Failed parsing finde node");
+    let steps = network.find_steps_required_for(&find).expect("Failed getting steps");
+
+    println!("Steps from 'AAA' to 'ZZZ': {steps}");
+
+    let ghost_steps = network
+        .find_ghost_steps_required_for('Z')
+        .expect("Failed getting ghost steps");
+
+    println!("Ghost steps from '__A' to '__Z': {ghost_steps}");
+}
+
 fn main() {
     println!("## Advent of Code 2023 solutions ##");
     time!("All", {
@@ -130,5 +145,6 @@ fn main() {
         day!(5, day5);
         day!(6, day6);
         day!(7, day7);
+        day!(8, day8);
     })
 }
