@@ -1,4 +1,4 @@
-use std::{collections::BTreeMap, num::ParseIntError, str::FromStr};
+use std::{num::ParseIntError, str::FromStr};
 
 #[derive(Debug)]
 pub enum ScratchCardError {
@@ -90,21 +90,16 @@ impl ScratchCard {
 }
 
 #[derive(Debug)]
-pub struct ScratchCards(BTreeMap<usize, ScratchCard>);
+pub struct ScratchCards(Vec<ScratchCard>);
 
 impl ScratchCards {
     pub fn get_points_worth(&self) -> i32 {
-        self.0
-            .values()
-            .map(ScratchCard::worth)
-            .collect::<Vec<i32>>()
-            .iter()
-            .sum()
+        self.0.iter().map(ScratchCard::worth).collect::<Vec<i32>>().iter().sum()
     }
 
     pub fn calculate_copies_and_get_total(&mut self) -> Result<usize, ScratchCardError> {
-        for key in 1..self.0.len() {
-            let Some(card) = self.0.get(&key) else {
+        for key in 0..self.0.len() {
+            let Some(card) = self.0.get(key) else {
                 panic!("Key exceeded iterator length!")
             };
 
@@ -113,16 +108,16 @@ impl ScratchCards {
             if winnings > 0 {
                 let range = (key + 1)..=(key + winnings);
                 let amount = *card.amount();
-                range.for_each(|i| self.0.get_mut(&i).map(|card| card.add_copies(amount)).unwrap_or(()))
+                range.for_each(|i| self.0.get_mut(i).map(|card| card.add_copies(amount)).unwrap_or(()))
             }
         }
 
-        Ok(self.0.values().map(|card| card.amount).sum())
+        Ok(self.0.iter().map(|card| card.amount).sum())
     }
 }
 
-impl FromIterator<(usize, ScratchCard)> for ScratchCards {
-    fn from_iter<T: IntoIterator<Item = (usize, ScratchCard)>>(iter: T) -> Self {
+impl FromIterator<ScratchCard> for ScratchCards {
+    fn from_iter<T: IntoIterator<Item = ScratchCard>>(iter: T) -> Self {
         Self(iter.into_iter().collect())
     }
 }
@@ -134,9 +129,7 @@ impl FromStr for ScratchCards {
         Ok(Self::from_iter(
             s.lines()
                 .map(ScratchCard::from_str)
-                .collect::<Result<Vec<ScratchCard>, _>>()?
-                .into_iter()
-                .map(|card| (*card.id(), card)),
+                .collect::<Result<Vec<ScratchCard>, _>>()?,
         ))
     }
 }
