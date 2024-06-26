@@ -74,7 +74,7 @@ fn day3(input: String) {
 
 fn day4(input: String) {
     let mut cards = ScratchCards::from_str(&input).expect("Failed to create scratchcards!");
-    let total = cards.get_points_worth();
+    let total = cards.get_points_worth().expect("Failed to calculate total");
 
     println!("Total points: {total}");
 

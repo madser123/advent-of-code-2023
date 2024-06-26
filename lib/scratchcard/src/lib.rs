@@ -1,14 +1,24 @@
-use std::{num::ParseIntError, str::FromStr};
+use std::{
+    num::{ParseIntError, TryFromIntError},
+    str::FromStr,
+};
 
 #[derive(Debug)]
 pub enum ScratchCardError {
     Invalid,
     ParseInt(ParseIntError),
+    ConvertUsize(TryFromIntError),
 }
 
 impl From<ParseIntError> for ScratchCardError {
     fn from(value: ParseIntError) -> Self {
         Self::ParseInt(value)
+    }
+}
+
+impl From<TryFromIntError> for ScratchCardError {
+    fn from(value: TryFromIntError) -> Self {
+        Self::ConvertUsize(value)
     }
 }
 
@@ -62,19 +72,16 @@ impl ScratchCard {
         &self.amount
     }
 
-    pub fn worth(&self) -> i32 {
-        let mut points = 0;
+    pub fn worth(&self) -> Result<i32, ScratchCardError> {
         let total_winning = self.total_winning_numbers();
 
-        for _ in 0..total_winning {
-            if points == 0 {
-                points += 1;
-            } else {
-                points *= 2;
-            }
+        if total_winning == 0 {
+            return Ok(0);
         }
 
-        points
+        let exponent = (total_winning - 1).try_into()?;
+
+        Ok(total_winning.pow(exponent).try_into()?)
     }
 
     fn total_winning_numbers(&self) -> usize {
@@ -93,12 +100,18 @@ impl ScratchCard {
 pub struct ScratchCards(Vec<ScratchCard>);
 
 impl ScratchCards {
-    pub fn get_points_worth(&self) -> i32 {
-        self.0.iter().map(ScratchCard::worth).collect::<Vec<i32>>().iter().sum()
+    pub fn get_points_worth(&self) -> Result<i32, ScratchCardError> {
+        Ok(self
+            .0
+            .iter()
+            .map(ScratchCard::worth)
+            .collect::<Result<Vec<i32>, ScratchCardError>>()?
+            .iter()
+            .sum())
     }
 
     pub fn calculate_copies_and_get_total(&mut self) -> Result<usize, ScratchCardError> {
-        for key in 0..self.0.len() {
+        (0..self.0.len()).for_each(|key| {
             let Some(card) = self.0.get(key) else {
                 panic!("Key exceeded iterator length!")
             };
@@ -110,7 +123,7 @@ impl ScratchCards {
                 let amount = *card.amount();
                 range.for_each(|i| self.0.get_mut(i).map(|card| card.add_copies(amount)).unwrap_or(()))
             }
-        }
+        });
 
         Ok(self.0.iter().map(|card| card.amount).sum())
     }
@@ -148,7 +161,7 @@ Card 6: 31 18 13 56 72 | 74 77 10 23 35 67 36 11";
     #[test]
     fn points() {
         let cards = ScratchCards::from_str(EXAMPLE).expect("Failed to create scratchcards");
-        assert_eq!(cards.get_points_worth(), 13);
+        assert_eq!(cards.get_points_worth().expect("Failed to calculate worth"), 13);
     }
 
     #[test]
