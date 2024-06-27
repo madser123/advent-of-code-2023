@@ -81,7 +81,7 @@ impl ScratchCard {
 
         let exponent = (total_winning - 1).try_into()?;
 
-        Ok(total_winning.pow(exponent).try_into()?)
+        Ok(2i32.pow(exponent))
     }
 
     fn total_winning_numbers(&self) -> usize {
