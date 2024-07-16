@@ -8,6 +8,7 @@ use camel_cards::Hands;
 use cube_game::{cube::Color, Cubes, Game};
 use gondola_lift::EngineSchematic;
 use network_nodes::{Network, Node};
+use oasis::Report;
 use scratchcard::ScratchCards;
 use trebuchet::Trebuchet;
 
@@ -135,6 +136,17 @@ fn day8(input: String) {
     println!("Ghost steps from '__A' to '__Z': {ghost_steps}");
 }
 
+fn day9(input: String) {
+    let report = Report::from_str(&input).expect("Failed parsing report");
+    let next_sum = report.get_next_values_sum();
+
+    println!("Sum of next values for histories: {next_sum}");
+
+    let prev_sum = report.get_prev_values_sum();
+
+    println!("Sum of prev values for histories: {prev_sum}")
+}
+
 fn main() {
     println!("## Advent of Code 2023 solutions ##");
     time!("All", {
@@ -146,5 +158,6 @@ fn main() {
         day!(6, day6);
         day!(7, day7);
         day!(8, day8);
+        day!(9, day9);
     })
 }

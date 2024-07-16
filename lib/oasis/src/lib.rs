@@ -11,7 +11,7 @@ impl From<ParseIntError> for OasisError {
     }
 }
 
-pub type Value = u32;
+pub type Value = i64;
 
 #[derive(Debug, Clone)]
 pub struct Layer(Vec<Value>);
@@ -19,36 +19,28 @@ pub struct Layer(Vec<Value>);
 impl Layer {
     #[inline(always)]
     fn is_all_zero(&self) -> bool {
-        println!("Is zero? {self:?}");
-        let sum = self.0.iter().sum::<Value>();
-        println!("Sum: {sum}");
-        sum == 0
+        self.0.iter().all(|n| *n == 0)
     }
 
     #[inline(always)]
     pub fn get_next_layer(&self) -> Option<Self> {
-        let next = Self(
-            self.0
-                .windows(2)
-                .map(|a| {
-                    let (a, b) = (a[0], a[1]);
-                    let diff = a.abs_diff(b);
-                    println!("Diff {a} | {b} = {diff}");
-                    diff
-                })
-                .collect(),
-        );
-
-        if next.is_all_zero() {
+        if self.is_all_zero() {
             return None;
         }
 
-        Some(next)
+        let next = self.0.windows(2).map(|a| a[1] - a[0]).collect();
+
+        Some(Self(next))
     }
 
     #[inline(always)]
     pub fn last_value(&self) -> Option<&Value> {
         self.0.last()
+    }
+
+    #[inline(always)]
+    pub fn first_value(&self) -> Option<&Value> {
+        self.0.first()
     }
 }
 
@@ -60,15 +52,16 @@ impl FromStr for History {
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         Ok(Self(Layer(
-            s.split(' ').map(|x| x.parse::<Value>()).collect::<Result<_, _>>()?,
+            s.split_whitespace()
+                .map(|x| x.parse::<Value>())
+                .collect::<Result<_, _>>()?,
         )))
     }
 }
 
 impl History {
-    pub fn calculate_next_value(&self) -> Value {
+    fn get_layers(&self) -> Vec<Layer> {
         let mut layers = vec![self.0.clone()];
-        println!("Calculating layer: {layers:?}");
 
         loop {
             let Some(current) = layers.last() else {
@@ -76,27 +69,27 @@ impl History {
             };
 
             if let Some(next) = current.get_next_layer() {
-                println!("Pushing next layer: {next:?}");
                 layers.push(next);
             } else {
                 break;
             }
         }
 
-        let mut current = 0u32;
+        layers
+    }
 
-        (layers.len()..0).for_each(|index| {
-            let above_value = index.checked_sub(1).map_or_else(
-                || layers.first().expect("No layers").last_value().unwrap_or(&0),
-                |under| layers[under].last_value().unwrap_or(&0),
-            );
+    pub fn calculate_next_value(&self) -> Value {
+        self.get_layers()
+            .iter()
+            .rev()
+            .fold(0, |acc, layer| layer.last_value().map_or(acc, |value| acc + value))
+    }
 
-            current = dbg!(current.abs_diff(*above_value));
-
-            println!("New current: {current}");
-        });
-
-        current
+    pub fn calculate_prev_value(&self) -> Value {
+        self.get_layers()
+            .iter()
+            .rev()
+            .fold(0, |acc, layer| layer.first_value().map_or(acc, |value| acc + value))
     }
 }
 
@@ -106,6 +99,10 @@ pub struct Report(Vec<History>);
 impl Report {
     pub fn get_next_values_sum(&self) -> Value {
         self.0.iter().map(|history| history.calculate_next_value()).sum()
+    }
+
+    pub fn get_prev_values_sum(&self) -> Value {
+        self.0.iter().map(|history| history.calculate_prev_value()).sum()
     }
 }
 
@@ -121,16 +118,40 @@ impl FromStr for Report {
 mod tests {
     use super::*;
 
-    const EXAMPLE: &str = "0 3 6 9 12 15
+    const EXAMPLE_1: &str = "0 3 6 9 12 15
 1 3 6 10 15 21
 10 13 16 21 30 45";
 
+    const EXAMPLE_2: &str = "0 -1 -1 0";
+
+    const EXAMPLE_3: &str = "0 1 1 0";
+
+    #[test]
+    fn bin_test() {
+        let report = Report::from_str(EXAMPLE_2).expect("Failed to parse");
+        let sum = report.get_next_values_sum();
+
+        assert_eq!(sum, 2);
+
+        let report = Report::from_str(EXAMPLE_3).expect("Failed to parse");
+        let sum = report.get_next_values_sum();
+
+        assert_eq!(sum, -2);
+    }
+
     #[test]
     fn solution_1() {
-        let report = Report::from_str(EXAMPLE).expect("Failed to parse");
+        let report = Report::from_str(EXAMPLE_1).expect("Failed to parse");
+        let sum = report.get_next_values_sum();
 
-        println!("Parsed! {report:?}");
+        assert_eq!(sum, 114);
+    }
 
-        assert_eq!(report.get_next_values_sum(), 114);
+    #[test]
+    fn solution_2() {
+        let report = Report::from_str(EXAMPLE_1).expect("Failed to parse");
+        let sum = report.get_prev_values_sum();
+
+        assert_eq!(sum, 2);
     }
 }
