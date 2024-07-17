@@ -12,6 +12,7 @@ dependencies = [
  "cube_game",
  "gondola_lift",
  "network_nodes",
+ "oasis",
  "scratchcard",
  "trebuchet",
 ]
@@ -38,6 +39,10 @@ version = "0.1.0"
 
 [[package]]
 name = "network_nodes"
+version = "0.1.0"
+
+[[package]]
+name = "oasis"
 version = "0.1.0"
 
 [[package]]
