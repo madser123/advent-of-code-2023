@@ -116,7 +116,11 @@ impl FromStr for CalibrationValue {
         // Sort by index
         assorted.sort_by_key(|(index, _)| *index);
 
-        let numbers = assorted.into_iter().map(|(_, n)| n).collect();
+        let numbers = assorted.into_iter().map(|(_, n)| n).collect::<Vec<_>>();
+
+        if numbers.is_empty() {
+            return Err(CalibrationError::NoNumbers);
+        }
 
         Ok(Self { numbers })
     }
