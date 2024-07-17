@@ -1,4 +1,4 @@
-use std::str::FromStr;
+use std::{collections::HashMap, str::FromStr};
 
 #[derive(Debug)]
 pub enum MazeError {
@@ -6,14 +6,14 @@ pub enum MazeError {
     Empty,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct Coordinate {
-    x: usize,
-    y: usize,
+    x: i32,
+    y: i32,
 }
 
 impl Coordinate {
-    pub const fn new(x: usize, y: usize) -> Self {
+    pub const fn new(x: i32, y: i32) -> Self {
         Self { x, y }
     }
 
@@ -37,7 +37,7 @@ pub enum Direction {
 }
 
 impl Direction {
-    const ALL: [Self; 4] = [Self::North, Self::East, Self::South, Self::West];
+    const ALL: [Self; 4] = [Self::North, Self::West, Self::South, Self::East];
 
     pub fn is_horizontal(&self) -> bool {
         *self == Self::East || *self == Self::West
@@ -48,7 +48,7 @@ impl Direction {
     }
 }
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Pipe {
     Vertical,
     Horizontal,
@@ -78,31 +78,71 @@ impl TryFrom<char> for Pipe {
 
 impl Pipe {
     pub const fn redirect(&self, from: Direction) -> Option<Direction> {
+        use Direction::*;
+
         match from {
             Direction::South => match self {
                 Self::Vertical => Some(from),
-                Self::NorthEast => Some(Direction::East),
-                Self::NorthWest => Some(Direction::West),
+                Self::NorthEast => Some(East),
+                Self::NorthWest => Some(West),
                 _ => None,
             },
             Direction::West => match self {
                 Self::Horizontal => Some(from),
-                Self::NorthEast => Some(Direction::North),
-                Self::SouthEast => Some(Direction::South),
+                Self::NorthEast => Some(North),
+                Self::SouthEast => Some(South),
                 _ => None,
             },
             Direction::North => match self {
                 Self::Vertical => Some(from),
-                Self::SouthEast => Some(Direction::East),
-                Self::SouthWest => Some(Direction::West),
+                Self::SouthEast => Some(East),
+                Self::SouthWest => Some(West),
                 _ => None,
             },
             Direction::East => match self {
                 Self::Horizontal => Some(from),
-                Self::NorthWest => Some(Direction::North),
-                Self::SouthWest => Some(Direction::South),
+                Self::NorthWest => Some(North),
+                Self::SouthWest => Some(South),
                 _ => None,
             },
+        }
+    }
+
+    pub const fn find_connector_between(direction: &Direction, end_at: &Direction) -> Option<Self> {
+        use Direction::*;
+
+        match (direction, end_at) {
+            (North, North) | (South, South) => Some(Self::Vertical),
+            (East, East) | (West, West) => Some(Self::Horizontal),
+            (North, West) | (East, South) => Some(Self::SouthWest),
+            (North, East) | (West, South) => Some(Self::SouthEast),
+            (South, West) | (East, North) => Some(Self::NorthWest),
+            (South, East) | (West, North) => Some(Self::NorthEast),
+            _ => None,
+        }
+    }
+
+    pub const fn is_horizontal_neighbour(&self, other: &Self) -> bool {
+        match self {
+            Self::Vertical => false,
+            _ => !matches!(other, Self::Vertical),
+        }
+    }
+
+    pub const fn is_corner(&self) -> bool {
+        matches!(
+            self,
+            Self::NorthEast | Self::NorthWest | Self::SouthEast | Self::SouthWest
+        )
+    }
+
+    pub const fn is_connected_corner(&self, other: &Self) -> bool {
+        match self {
+            Self::NorthEast => matches!(other, Self::SouthWest | Self::NorthWest),
+            Self::NorthWest => matches!(other, Self::SouthEast | Self::NorthEast),
+            Self::SouthEast => matches!(other, Self::NorthWest | Self::SouthWest),
+            Self::SouthWest => matches!(other, Self::NorthEast | Self::SouthEast),
+            _ => false,
         }
     }
 }
@@ -129,78 +169,94 @@ impl TryFrom<char> for Tile {
 }
 
 pub struct Maze {
-    tiles: Vec<Vec<Tile>>,
+    tiles: HashMap<Coordinate, Tile>,
 }
 
 impl FromStr for Maze {
     type Err = MazeError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let lines = s.lines();
-
-        let tiles = lines
-            .map(|l| l.chars().map(Tile::try_from).collect::<Result<Vec<Tile>, _>>())
-            .collect::<Result<Vec<Vec<Tile>>, _>>()?;
+        let tiles = s.lines().enumerate().try_fold(HashMap::new(), |mut map, (row, line)| {
+            line.chars().enumerate().try_for_each(|(col, tile)| {
+                let tile = Tile::try_from(tile)?;
+                map.insert(Coordinate::new(col as i32, row as i32), tile);
+                Ok(())
+            })?;
+            Ok(map)
+        })?;
 
         Ok(Self { tiles })
     }
 }
 
 impl Maze {
+    fn picks(area: i32, boundary: i32) -> i32 {
+        println!("{area} + 1 - {boundary} / 2");
+        area + 1 - boundary / 2
+    }
+
+    fn shoestring(pipes: Vec<Coordinate>) -> i32 {
+        pipes.windows(2).fold(0, |acc, coords| {
+            acc + (coords[0].y * coords[1].x) - (coords[1].y * coords[0].x)
+        }) / 2
+    }
+
     fn find_starting_position(&self) -> Coordinate {
-        let Some((x, y)) = self
-            .tiles
-            .iter()
-            .enumerate()
-            .find(|(_, row)| row.contains(&Tile::Start))
-            .and_then(|(x, start_row)| start_row.iter().position(|tile| *tile == Tile::Start).zip(Some(x)))
-        else {
+        let Some((pos, _)) = self.tiles.iter().find(|(_, tile)| **tile == Tile::Start) else {
             unreachable!("Maze always contains a starting position")
         };
 
-        Coordinate::new(x, y)
+        *pos
     }
 
-    fn get_tile(&self, coord: &Coordinate) -> &Tile {
-        &self.tiles[coord.y][coord.x]
+    fn get_tile(&self, coord: &Coordinate) -> Option<&Tile> {
+        self.tiles.get(coord)
     }
 
-    pub fn find_longest_distance_from_start(&self) -> i32 {
+    pub fn find_loop(&self) -> Vec<Coordinate> {
         let start = &self.find_starting_position();
 
         for mut direction in Direction::ALL {
             // Copy starting position
             let mut coord = *start;
 
-            let mut traversed: i32 = 0;
+            let mut traversed = vec![*start];
 
             while let Some(pipe) = self.get_next_pipe(&mut coord, &direction) {
                 if let Some(dir) = pipe.redirect(direction) {
-                    traversed += 1;
+                    traversed.push(coord);
                     direction = dir;
                 } else {
                     break;
                 }
             }
 
-            if coord == *start && traversed > 0 {
-                let div = traversed / 2;
-
-                if traversed % 2 > 0 {
-                    return div + 1;
-                }
-
-                return div;
+            if coord == *start && traversed.len() != 1 {
+                return traversed;
             }
         }
 
         unreachable!("We always have a path")
     }
 
+    pub fn find_nest_area(&self) -> i32 {
+        let pipes = self.find_loop();
+        let boundary = (pipes.len() - 1) as i32;
+        let area = Self::shoestring(pipes);
+        Self::picks(area, boundary)
+    }
+
+    pub fn find_farthest_point_from_start(&self) -> usize {
+        let pipes = self.find_loop();
+
+        let len = pipes.len();
+        len / 2
+    }
+
     fn get_next_pipe(&self, coord: &mut Coordinate, direction: &Direction) -> Option<&Pipe> {
         coord.transform(direction);
 
-        if let Tile::Pipe(pipe) = self.get_tile(coord) {
+        if let Tile::Pipe(pipe) = self.get_tile(coord)? {
             return Some(pipe);
         }
 
@@ -211,12 +267,6 @@ impl Maze {
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    const PARSING_EXAMPLE: &str = ".....
-.F-7.
-.|.|.
-.L-J.
-.....";
 
     const SIMPLE_EXAMPLE: &str = ".....
 .S-7.
@@ -230,51 +280,77 @@ SJLL7
 |F--J
 LJ.LJ";
 
-    #[test]
-    fn test_parsing() {
-        let maze = Maze::from_str(PARSING_EXAMPLE).expect("Failed to parse");
+    const EXAMPLE_2: &str = "...........
+.S-------7.
+.|F-----7|.
+.||.....||.
+.||.....||.
+.|L-7.F-J|.
+.|..|.|..|.
+.L--J.L--J.
+...........";
 
-        assert_eq!(
-            maze.tiles,
-            vec![
-                vec![Tile::Ground, Tile::Ground, Tile::Ground, Tile::Ground, Tile::Ground],
-                vec![
-                    Tile::Ground,
-                    Tile::Pipe(Pipe::SouthEast),
-                    Tile::Pipe(Pipe::Horizontal),
-                    Tile::Pipe(Pipe::SouthWest),
-                    Tile::Ground
-                ],
-                vec![
-                    Tile::Ground,
-                    Tile::Pipe(Pipe::Vertical),
-                    Tile::Ground,
-                    Tile::Pipe(Pipe::Vertical),
-                    Tile::Ground
-                ],
-                vec![
-                    Tile::Ground,
-                    Tile::Pipe(Pipe::NorthEast),
-                    Tile::Pipe(Pipe::Horizontal),
-                    Tile::Pipe(Pipe::NorthWest),
-                    Tile::Ground
-                ],
-                vec![Tile::Ground, Tile::Ground, Tile::Ground, Tile::Ground, Tile::Ground],
-            ]
-        )
-    }
+    const EXAMPLE_3: &str = ".F----7F7F7F7F-7....
+.|F--7||||||||FJ....
+.||.FJ||||||||L7....
+FJL7L7LJLJ||LJ.L-7..
+L--J.L7...LJS7F-7L7.
+....F-J..F7FJ|L7L7L7
+....L7.F7||L7|.L7L7|
+.....|FJLJ|FJ|F7|.LJ
+....FJL-7.||.||||...
+....L---J.LJ.LJLJ...";
+
+    const EXAMPLE_4: &str = "FF7FSF7F7F7F7F7F---7
+L|LJ||||||||||||F--J
+FL-7LJLJ||||||LJL-77
+F--JF--7||LJLJ7F7FJ-
+L---JF-JLJ.||-FJLJJ7
+|F|F-JF---7F7-L7L|7|
+|FFJF7L7F-JF7|JL---7
+7-L-JL7||F7|L7F-7F7|
+L.L7LFJ|||||FJL7||LJ
+L7JLJL-JLJLJL--JLJ.L";
 
     #[test]
-    fn test_simple_example() {
+    fn test_loop_simple_example() {
         let maze = Maze::from_str(SIMPLE_EXAMPLE).expect("Failed to parse");
 
-        assert_eq!(maze.find_longest_distance_from_start(), 4)
+        assert_eq!(maze.find_farthest_point_from_start(), 4)
     }
 
     #[test]
     fn solution_1() {
         let maze = Maze::from_str(EXAMPLE_1).expect("Failed to parse");
 
-        assert_eq!(maze.find_longest_distance_from_start(), 8)
+        assert_eq!(maze.find_farthest_point_from_start(), 8)
+    }
+
+    #[test]
+    fn test_nest_simple_example() {
+        let maze = Maze::from_str(SIMPLE_EXAMPLE).expect("Failed to parse");
+
+        assert_eq!(maze.find_nest_area(), 1)
+    }
+
+    #[test]
+    fn solution_2_example_1() {
+        let maze_1 = Maze::from_str(EXAMPLE_2).expect("Failed to parse");
+
+        assert_eq!(maze_1.find_nest_area(), 4);
+    }
+
+    #[test]
+    fn solution_2_example_2() {
+        let maze_2 = Maze::from_str(EXAMPLE_3).expect("Failed to parse");
+
+        assert_eq!(maze_2.find_nest_area(), 8);
+    }
+
+    #[test]
+    fn solution_2_example_3() {
+        let maze_3 = Maze::from_str(EXAMPLE_4).expect("Failed to parse");
+
+        assert_eq!(maze_3.find_nest_area(), 10);
     }
 }

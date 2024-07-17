@@ -120,9 +120,11 @@ fn day9(input: String) {
 
 fn day10(input: String) {
     let maze = Maze::from_str(&input).expect("Failed parsing maze");
-    let farthest_point = maze.find_longest_distance_from_start();
-
+    let farthest_point = maze.find_farthest_point_from_start();
     println!("Farthest point from start: {farthest_point}");
+
+    let area = maze.find_nest_area();
+    println!("Area of nest: {area}");
 }
 
 fn main() {
