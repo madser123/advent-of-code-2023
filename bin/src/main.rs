@@ -1,7 +1,12 @@
 #![allow(clippy::missing_panics_doc, missing_docs, clippy::missing_errors_doc)]
 
+// Macros
+mod macros;
+
+// Imports
 use std::str::FromStr;
 
+// Solution imports
 use almanac::Almanac;
 use boat_race::Races;
 use camel_cards::Hands;
@@ -11,36 +16,6 @@ use network_nodes::{Network, Node};
 use oasis::Report;
 use scratchcard::ScratchCards;
 use trebuchet::Trebuchet;
-
-macro_rules! time {
-    ($name:expr, $block:block) => {{
-        let __start = std::time::Instant::now();
-        {
-            $block
-        };
-        let __duration = __start.elapsed();
-        println!("[TIMING] '{}' took: {:?}", $name, __duration);
-    }};
-
-    ($name:expr, $fn:ident) => {
-        time!($name, { $fn() })
-    };
-}
-
-macro_rules! day {
-    ($day:tt, $fn:ident) => {
-        time!(format!("Day {}", $day), {
-            println!("# Day {}", $day);
-            $fn(get_input!($day));
-        })
-    };
-}
-
-macro_rules! get_input {
-    ($day:tt) => {
-        std::fs::read_to_string(&format!("inputs/day{}.txt", $day)).expect("Couldn't read input-file!")
-    };
-}
 
 fn day1(input: String) {
     let result = Trebuchet::new(&input)
