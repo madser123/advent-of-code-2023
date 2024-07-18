@@ -177,7 +177,7 @@ impl FromStr for Maze {
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let tiles = s.lines().enumerate().try_fold(HashMap::new(), |mut map, (row, line)| {
-            line.chars().enumerate().try_for_each(|(col, tile)| {
+            line.trim().chars().enumerate().try_for_each(|(col, tile)| {
                 let tile = Tile::try_from(tile)?;
                 map.insert(Coordinate::new(col as i32, row as i32), tile);
                 Ok(())
@@ -190,15 +190,18 @@ impl FromStr for Maze {
 }
 
 impl Maze {
-    fn picks(area: i32, boundary: i32) -> i32 {
-        println!("{area} + 1 - {boundary} / 2");
-        area + 1 - boundary / 2
+    const fn picks(area: i32, boundary: i32) -> i32 {
+        area - (boundary / 2) + 1
     }
 
     fn shoestring(pipes: Vec<Coordinate>) -> i32 {
-        pipes.windows(2).fold(0, |acc, coords| {
-            acc + (coords[0].y * coords[1].x) - (coords[1].y * coords[0].x)
-        }) / 2
+        pipes
+            .windows(2)
+            .fold(0, |acc, coords| {
+                acc + (coords[0].y * coords[1].x) - (coords[1].y * coords[0].x)
+            })
+            .abs()
+            / 2
     }
 
     fn find_starting_position(&self) -> Coordinate {
@@ -227,11 +230,12 @@ impl Maze {
                     traversed.push(coord);
                     direction = dir;
                 } else {
+                    traversed.push(*start);
                     break;
                 }
             }
 
-            if coord == *start && traversed.len() != 1 {
+            if coord == *start {
                 return traversed;
             }
         }
@@ -242,7 +246,7 @@ impl Maze {
     pub fn find_nest_area(&self) -> i32 {
         let pipes = self.find_loop();
         let boundary = (pipes.len()) as i32;
-        let area = Self::shoestring(pipes).abs();
+        let area = Self::shoestring(pipes);
         Self::picks(area, boundary)
     }
 
@@ -269,48 +273,48 @@ mod tests {
     use super::*;
 
     const SIMPLE_EXAMPLE: &str = ".....
-.S-7.
-.|.|.
-.L-J.
-.....";
+                                  .S-7.
+                                  .|.|.
+                                  .L-J.
+                                  .....";
 
     const EXAMPLE_1: &str = "7-F7-
-.FJ|7
-SJLL7
-|F--J
-LJ.LJ";
+                             .FJ|7
+                             SJLL7
+                             |F--J
+                             LJ.LJ";
 
     const EXAMPLE_2: &str = "...........
-.S-------7.
-.|F-----7|.
-.||.....||.
-.||.....||.
-.|L-7.F-J|.
-.|..|.|..|.
-.L--J.L--J.
-...........";
+                             .S-------7.
+                             .|F-----7|.
+                             .||.....||.
+                             .||.....||.
+                             .|L-7.F-J|.
+                             .|..|.|..|.
+                             .L--J.L--J.
+                             ...........";
 
     const EXAMPLE_3: &str = ".F----7F7F7F7F-7....
-.|F--7||||||||FJ....
-.||.FJ||||||||L7....
-FJL7L7LJLJ||LJ.L-7..
-L--J.L7...LJS7F-7L7.
-....F-J..F7FJ|L7L7L7
-....L7.F7||L7|.L7L7|
-.....|FJLJ|FJ|F7|.LJ
-....FJL-7.||.||||...
-....L---J.LJ.LJLJ...";
+                             .|F--7||||||||FJ....
+                             .||.FJ||||||||L7....
+                             FJL7L7LJLJ||LJ.L-7..
+                             L--J.L7...LJS7F-7L7.
+                             ....F-J..F7FJ|L7L7L7
+                             ....L7.F7||L7|.L7L7|
+                             .....|FJLJ|FJ|F7|.LJ
+                             ....FJL-7.||.||||...
+                             ....L---J.LJ.LJLJ...";
 
     const EXAMPLE_4: &str = "FF7FSF7F7F7F7F7F---7
-L|LJ||||||||||||F--J
-FL-7LJLJ||||||LJL-77
-F--JF--7||LJLJ7F7FJ-
-L---JF-JLJ.||-FJLJJ7
-|F|F-JF---7F7-L7L|7|
-|FFJF7L7F-JF7|JL---7
-7-L-JL7||F7|L7F-7F7|
-L.L7LFJ|||||FJL7||LJ
-L7JLJL-JLJLJL--JLJ.L";
+                             L|LJ||||||||||||F--J
+                             FL-7LJLJ||||||LJL-77
+                             F--JF--7||LJLJ7F7FJ-
+                             L---JF-JLJ.||-FJLJJ7
+                             |F|F-JF---7F7-L7L|7|
+                             |FFJF7L7F-JF7|JL---7
+                             7-L-JL7||F7|L7F-7F7|
+                             L.L7LFJ|||||FJL7||LJ
+                             L7JLJL-JLJLJL--JLJ.L";
 
     #[test]
     fn test_loop_simple_example() {
@@ -334,21 +338,21 @@ L7JLJL-JLJLJL--JLJ.L";
     }
 
     #[test]
-    fn solution_2_example_1() {
+    fn solution_2_example_2() {
         let maze_1 = Maze::from_str(EXAMPLE_2).expect("Failed to parse");
 
         assert_eq!(maze_1.find_nest_area(), 4);
     }
 
     #[test]
-    fn solution_2_example_2() {
+    fn solution_2_example_3() {
         let maze_2 = Maze::from_str(EXAMPLE_3).expect("Failed to parse");
 
         assert_eq!(maze_2.find_nest_area(), 8);
     }
 
     #[test]
-    fn solution_2_example_3() {
+    fn solution_2_example_4() {
         let maze_3 = Maze::from_str(EXAMPLE_4).expect("Failed to parse");
 
         assert_eq!(maze_3.find_nest_area(), 10);
