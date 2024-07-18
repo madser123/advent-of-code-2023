@@ -165,11 +165,8 @@ impl Network {
             // Grab the amount of nodes we are tracking right now
             let current_nodes_len = current_nodes.len();
 
-            // Remove nodes that are
-            current_nodes = current_nodes
-                .iter()
-                .filter_map(|node| (!node.ends_with(node_ends_with)).then_some(*node))
-                .collect();
+            // Remove nodes that end up at the right location after cycling
+            current_nodes.retain(|node| !node.ends_with(node_ends_with));
 
             // If the old length is over than the current length, we found another cycle. Append it to the list
             if current_nodes_len > current_nodes.len() {
