@@ -1,4 +1,4 @@
-use std::{collections::HashMap, str::FromStr};
+use std::str::FromStr;
 
 #[derive(Debug)]
 pub enum MazeError {
@@ -6,14 +6,14 @@ pub enum MazeError {
     Empty,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Coordinate {
-    x: i32,
-    y: i32,
+    x: usize,
+    y: usize,
 }
 
 impl Coordinate {
-    pub const fn new(x: i32, y: i32) -> Self {
+    pub const fn new(x: usize, y: usize) -> Self {
         Self { x, y }
     }
 
@@ -38,14 +38,6 @@ pub enum Direction {
 
 impl Direction {
     const ALL: [Self; 4] = [Self::North, Self::West, Self::South, Self::East];
-
-    pub fn is_horizontal(&self) -> bool {
-        *self == Self::East || *self == Self::West
-    }
-
-    pub fn is_vertical(&self) -> bool {
-        *self == Self::North || *self == Self::South
-    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -107,44 +99,6 @@ impl Pipe {
             },
         }
     }
-
-    pub const fn find_connector_between(direction: &Direction, end_at: &Direction) -> Option<Self> {
-        use Direction::*;
-
-        match (direction, end_at) {
-            (North, North) | (South, South) => Some(Self::Vertical),
-            (East, East) | (West, West) => Some(Self::Horizontal),
-            (North, West) | (East, South) => Some(Self::SouthWest),
-            (North, East) | (West, South) => Some(Self::SouthEast),
-            (South, West) | (East, North) => Some(Self::NorthWest),
-            (South, East) | (West, North) => Some(Self::NorthEast),
-            _ => None,
-        }
-    }
-
-    pub const fn is_horizontal_neighbour(&self, other: &Self) -> bool {
-        match self {
-            Self::Vertical => false,
-            _ => !matches!(other, Self::Vertical),
-        }
-    }
-
-    pub const fn is_corner(&self) -> bool {
-        matches!(
-            self,
-            Self::NorthEast | Self::NorthWest | Self::SouthEast | Self::SouthWest
-        )
-    }
-
-    pub const fn is_connected_corner(&self, other: &Self) -> bool {
-        match self {
-            Self::NorthEast => matches!(other, Self::SouthWest | Self::NorthWest),
-            Self::NorthWest => matches!(other, Self::SouthEast | Self::NorthEast),
-            Self::SouthEast => matches!(other, Self::NorthWest | Self::SouthWest),
-            Self::SouthWest => matches!(other, Self::NorthEast | Self::SouthEast),
-            _ => false,
-        }
-    }
 }
 
 #[derive(Debug, PartialEq, Eq)]
@@ -169,51 +123,58 @@ impl TryFrom<char> for Tile {
 }
 
 pub struct Maze {
-    tiles: HashMap<Coordinate, Tile>,
+    tiles: Vec<Vec<Tile>>,
 }
 
 impl FromStr for Maze {
     type Err = MazeError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let tiles = s.lines().enumerate().try_fold(HashMap::new(), |mut map, (row, line)| {
-            line.trim().chars().enumerate().try_for_each(|(col, tile)| {
-                let tile = Tile::try_from(tile)?;
-                map.insert(Coordinate::new(col as i32, row as i32), tile);
-                Ok(())
-            })?;
-            Ok(map)
-        })?;
+        let tiles = s
+            .lines()
+            .map(|line| {
+                line.trim()
+                    .chars()
+                    .map(Tile::try_from)
+                    .collect::<Result<Vec<Tile>, _>>()
+            })
+            .collect::<Result<Vec<Vec<Tile>>, _>>()?;
 
         Ok(Self { tiles })
     }
 }
 
 impl Maze {
-    const fn picks(area: i32, boundary: i32) -> i32 {
+    const fn picks(area: usize, boundary: usize) -> usize {
         area - (boundary / 2) + 1
     }
 
-    fn shoestring(pipes: Vec<Coordinate>) -> i32 {
-        pipes
+    fn shoelace(coordinates: Vec<Coordinate>) -> usize {
+        (coordinates
             .windows(2)
             .fold(0, |acc, coords| {
-                acc + (coords[0].y * coords[1].x) - (coords[1].y * coords[0].x)
+                acc + (coords[0].y as i32 * coords[1].x as i32) - (coords[1].y as i32 * coords[0].x as i32)
             })
             .abs()
-            / 2
+            / 2) as usize
     }
 
     fn find_starting_position(&self) -> Coordinate {
-        let Some((pos, _)) = self.tiles.iter().find(|(_, tile)| **tile == Tile::Start) else {
+        let Some((x, y)) = self
+            .tiles
+            .iter()
+            .enumerate()
+            .find(|(_, row)| row.contains(&Tile::Start))
+            .and_then(|(x, start_row)| start_row.iter().position(|tile| *tile == Tile::Start).zip(Some(x)))
+        else {
             unreachable!("Maze always contains a starting position")
         };
 
-        *pos
+        Coordinate::new(x, y)
     }
 
-    fn get_tile(&self, coord: &Coordinate) -> Option<&Tile> {
-        self.tiles.get(coord)
+    fn get_tile(&self, coord: &Coordinate) -> &Tile {
+        &self.tiles[coord.y][coord.x]
     }
 
     pub fn find_loop(&self) -> Vec<Coordinate> {
@@ -223,19 +184,23 @@ impl Maze {
             // Copy starting position
             let mut coord = *start;
 
+            // Push start to the beginning
             let mut traversed = vec![*start];
 
+            // Traverse the loop to completion, if the direction is correct
             while let Some(pipe) = self.get_next_pipe(&mut coord, &direction) {
                 if let Some(dir) = pipe.redirect(direction) {
                     traversed.push(coord);
                     direction = dir;
                 } else {
-                    traversed.push(*start);
                     break;
                 }
             }
 
-            if coord == *start {
+            // Make sure we actually traversed the loop
+            if coord == *start && traversed.len() > 1 {
+                // Push start to the end, so we can use it in the shoelace formula
+                traversed.push(*start);
                 return traversed;
             }
         }
@@ -243,16 +208,15 @@ impl Maze {
         unreachable!("We always have a path")
     }
 
-    pub fn find_nest_area(&self) -> i32 {
+    pub fn find_nest_area(&self) -> usize {
         let pipes = self.find_loop();
-        let boundary = (pipes.len()) as i32;
-        let area = Self::shoestring(pipes);
+        let boundary = pipes.len();
+        let area = Self::shoelace(pipes);
         Self::picks(area, boundary)
     }
 
     pub fn find_farthest_point_from_start(&self) -> usize {
         let pipes = self.find_loop();
-
         let len = pipes.len();
         len / 2
     }
@@ -260,7 +224,7 @@ impl Maze {
     fn get_next_pipe(&self, coord: &mut Coordinate, direction: &Direction) -> Option<&Pipe> {
         coord.transform(direction);
 
-        if let Tile::Pipe(pipe) = self.get_tile(coord)? {
+        if let Tile::Pipe(pipe) = self.get_tile(coord) {
             return Some(pipe);
         }
 
@@ -273,48 +237,48 @@ mod tests {
     use super::*;
 
     const SIMPLE_EXAMPLE: &str = ".....
-                                  .S-7.
-                                  .|.|.
-                                  .L-J.
-                                  .....";
+.S-7.
+.|.|.
+.L-J.
+.....";
 
     const EXAMPLE_1: &str = "7-F7-
-                             .FJ|7
-                             SJLL7
-                             |F--J
-                             LJ.LJ";
+.FJ|7
+SJLL7
+|F--J
+LJ.LJ";
 
     const EXAMPLE_2: &str = "...........
-                             .S-------7.
-                             .|F-----7|.
-                             .||.....||.
-                             .||.....||.
-                             .|L-7.F-J|.
-                             .|..|.|..|.
-                             .L--J.L--J.
-                             ...........";
+.S-------7.
+.|F-----7|.
+.||.....||.
+.||.....||.
+.|L-7.F-J|.
+.|..|.|..|.
+.L--J.L--J.
+...........";
 
     const EXAMPLE_3: &str = ".F----7F7F7F7F-7....
-                             .|F--7||||||||FJ....
-                             .||.FJ||||||||L7....
-                             FJL7L7LJLJ||LJ.L-7..
-                             L--J.L7...LJS7F-7L7.
-                             ....F-J..F7FJ|L7L7L7
-                             ....L7.F7||L7|.L7L7|
-                             .....|FJLJ|FJ|F7|.LJ
-                             ....FJL-7.||.||||...
-                             ....L---J.LJ.LJLJ...";
+.|F--7||||||||FJ....
+.||.FJ||||||||L7....
+FJL7L7LJLJ||LJ.L-7..
+L--J.L7...LJS7F-7L7.
+....F-J..F7FJ|L7L7L7
+....L7.F7||L7|.L7L7|
+.....|FJLJ|FJ|F7|.LJ
+....FJL-7.||.||||...
+....L---J.LJ.LJLJ...";
 
     const EXAMPLE_4: &str = "FF7FSF7F7F7F7F7F---7
-                             L|LJ||||||||||||F--J
-                             FL-7LJLJ||||||LJL-77
-                             F--JF--7||LJLJ7F7FJ-
-                             L---JF-JLJ.||-FJLJJ7
-                             |F|F-JF---7F7-L7L|7|
-                             |FFJF7L7F-JF7|JL---7
-                             7-L-JL7||F7|L7F-7F7|
-                             L.L7LFJ|||||FJL7||LJ
-                             L7JLJL-JLJLJL--JLJ.L";
+L|LJ||||||||||||F--J
+FL-7LJLJ||||||LJL-77
+F--JF--7||LJLJ7F7FJ-
+L---JF-JLJ.||-FJLJJ7
+|F|F-JF---7F7-L7L|7|
+|FFJF7L7F-JF7|JL---7
+7-L-JL7||F7|L7F-7F7|
+L.L7LFJ|||||FJL7||LJ
+L7JLJL-JLJLJL--JLJ.L";
 
     #[test]
     fn test_loop_simple_example() {
