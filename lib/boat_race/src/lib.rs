@@ -135,6 +135,8 @@ Distance:  9  40  200";
     fn solution_2() {
         let product = Races::from_str(EXAMPLE)
             .expect("Failed to parse race")
+            .as_single_race()
+            .expect("Failed to combine races")
             .get_winning_product();
         assert_eq!(product, 71503);
     }
