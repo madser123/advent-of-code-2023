@@ -14,6 +14,7 @@ use cube_game::{cube::Color, Cubes, Game};
 use gondola_lift::EngineSchematic;
 use network_nodes::{Network, Node};
 use oasis::Report;
+use pipe_maze::Maze;
 use scratchcard::ScratchCards;
 use trebuchet::Trebuchet;
 
@@ -117,6 +118,15 @@ fn day9(input: String) {
     println!("Sum of prev values for histories: {prev_sum}")
 }
 
+fn day10(input: String) {
+    let maze = Maze::from_str(&input).expect("Failed parsing maze");
+    let farthest_point = maze.find_farthest_point_from_start();
+    println!("Farthest point from start: {farthest_point}");
+
+    let area = maze.find_nest_area();
+    println!("Area of nest: {area}");
+}
+
 fn main() {
     println!("## Advent of Code 2023 solutions ##");
     time!("All", {
@@ -129,5 +139,6 @@ fn main() {
         day!(7, day7);
         day!(8, day8);
         day!(9, day9);
+        day!(10, day10);
     })
 }

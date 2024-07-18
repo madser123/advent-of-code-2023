@@ -13,6 +13,7 @@ dependencies = [
  "gondola_lift",
  "network_nodes",
  "oasis",
+ "pipe_maze",
  "scratchcard",
  "trebuchet",
 ]
@@ -43,6 +44,10 @@ version = "0.1.0"
 
 [[package]]
 name = "oasis"
+version = "0.1.0"
+
+[[package]]
+name = "pipe_maze"
 version = "0.1.0"
 
 [[package]]

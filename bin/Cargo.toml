@@ -15,3 +15,4 @@ boat_race = { path = "../lib/boat_race" }
 camel_cards = { path = "../lib/camel_cards" }
 network_nodes = { path = "../lib/network_nodes" }
 oasis = { path = "../lib/oasis" }
+pipe_maze = { path = "../lib/pipe_maze" }
