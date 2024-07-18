@@ -77,11 +77,11 @@ fn day5(input: String) {
 }
 
 fn day6(input: String) {
-    let races = Races::from_multiple_races(&input).expect("Failed to parse races");
+    let races = Races::from_str(&input).expect("Failed to parse races");
     let winning_product = races.get_winning_product();
     println!("Winning product for multiple races: {winning_product}");
 
-    let race = Races::from_single_race(&input).expect("Failed to parse race");
+    let race = races.as_single_race().expect("Failed to parse race");
     let winning_product = race.get_winning_product();
     println!("Winning product for single race: {winning_product}");
 }

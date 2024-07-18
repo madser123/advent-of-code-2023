@@ -1,9 +1,15 @@
-use std::num::ParseIntError;
+use std::{num::ParseIntError, str::FromStr};
 
 #[derive(Debug)]
 pub enum ParseRaceError {
     ParseInt(ParseIntError),
     Invalid(String),
+}
+
+impl From<ParseIntError> for ParseRaceError {
+    fn from(value: ParseIntError) -> Self {
+        Self::ParseInt(value)
+    }
 }
 
 pub struct Race {
@@ -65,32 +71,11 @@ pub struct Races {
     races: Vec<Race>,
 }
 
-impl Races {
-    pub fn get_winning_product(&self) -> u64 {
-        self.races.iter().map(Race::find_winning_conditions_amount).product()
-    }
+impl FromStr for Races {
+    type Err = ParseRaceError;
 
-    pub fn from_single_race(races: &str) -> Result<Self, ParseRaceError> {
-        let numbers = races
-            .lines()
-            .map(|line| {
-                line.split(':')
-                    .last()
-                    .ok_or_else(|| ParseRaceError::Invalid("Failed to get numbers".to_string()))?
-                    .split_ascii_whitespace()
-                    .collect::<String>()
-                    .parse::<u64>()
-                    .map_err(ParseRaceError::ParseInt)
-            })
-            .collect::<Result<Vec<u64>, ParseRaceError>>()?;
-
-        let races = vec![Race::new(numbers[0], numbers[1])];
-
-        Ok(Self { races })
-    }
-
-    pub fn from_multiple_races(races: &str) -> Result<Self, ParseRaceError> {
-        let numbers = races
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let numbers = s
             .lines()
             .map(|line| {
                 line.split(':')
@@ -98,9 +83,9 @@ impl Races {
                     .ok_or_else(|| ParseRaceError::Invalid("Failed to get numbers".to_string()))?
                     .split_ascii_whitespace()
                     .map(|n| n.parse::<u64>().map_err(ParseRaceError::ParseInt))
-                    .collect::<Result<Vec<u64>, ParseRaceError>>()
+                    .collect::<Result<Vec<u64>, _>>()
             })
-            .collect::<Result<Vec<Vec<u64>>, ParseRaceError>>()?;
+            .collect::<Result<Vec<Vec<u64>>, _>>()?;
 
         let races = numbers[0]
             .iter()
@@ -109,6 +94,25 @@ impl Races {
             .collect::<Vec<Race>>();
 
         Ok(Self { races })
+    }
+}
+
+impl Races {
+    pub fn get_winning_product(&self) -> u64 {
+        self.races.iter().map(Race::find_winning_conditions_amount).product()
+    }
+
+    pub fn as_single_race(self) -> Result<Self, ParseRaceError> {
+        let (time, distance) = self
+            .races
+            .into_iter()
+            .fold((String::new(), String::new()), |(time, distance), race| {
+                (time + &race.time.to_string(), distance + &race.distance.to_string())
+            });
+
+        let race = Race::new(time.parse()?, distance.parse()?);
+
+        Ok(Self { races: vec![race] })
     }
 }
 
@@ -121,7 +125,7 @@ Distance:  9  40  200";
 
     #[test]
     fn solution_1() {
-        let product = Races::from_multiple_races(EXAMPLE)
+        let product = Races::from_str(EXAMPLE)
             .expect("Failed to parse races")
             .get_winning_product();
         assert_eq!(product, 288)
@@ -129,7 +133,7 @@ Distance:  9  40  200";
 
     #[test]
     fn solution_2() {
-        let product = Races::from_single_race(EXAMPLE)
+        let product = Races::from_str(EXAMPLE)
             .expect("Failed to parse race")
             .get_winning_product();
         assert_eq!(product, 71503);
