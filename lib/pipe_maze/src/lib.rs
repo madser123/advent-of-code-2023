@@ -241,8 +241,8 @@ impl Maze {
 
     pub fn find_nest_area(&self) -> i32 {
         let pipes = self.find_loop();
-        let boundary = (pipes.len() - 1) as i32;
-        let area = Self::shoestring(pipes);
+        let boundary = (pipes.len()) as i32;
+        let area = Self::shoestring(pipes).abs();
         Self::picks(area, boundary)
     }
 
