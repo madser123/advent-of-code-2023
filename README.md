@@ -6,7 +6,7 @@ My solutions to AOC2023.
 * Pure rust
 * No external libraries
 * Modular code
-* Error handling
+* Error handling (Where nescessary)
 * Learn more efficient algorithms/optimizations
 * All days combined running in under 1s
 
