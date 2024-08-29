@@ -17,6 +17,8 @@ pub enum CalibrationError {
     NoNumbers,
 }
 
+impl std::error::Error for CalibrationError {}
+
 impl From<ParseIntError> for CalibrationError {
     fn from(value: ParseIntError) -> Self {
         Self::ParseInt(value)
@@ -45,12 +47,14 @@ pub enum CalibrationNumber {
 }
 
 impl CalibrationNumber {
+    #[inline(always)]
     pub const fn as_int(&self) -> &i32 {
         match self {
             Self::Alphabetic(n) | Self::Numeric(n) => n,
         }
     }
 
+    #[inline(always)]
     pub const fn is_numeric(&self) -> bool {
         match self {
             Self::Numeric(_) => true,
@@ -66,28 +70,23 @@ pub struct CalibrationValue {
 }
 
 impl CalibrationValue {
+    #[inline(always)]
     pub fn get_numeric_value(&self) -> CalibrationResult<i32> {
-        let mut numerics = self.numbers.iter().filter(|n| CalibrationNumber::is_numeric(n));
-
-        let first = numerics.next().ok_or(CalibrationError::NoNumbers)?;
-        let last = numerics.last().unwrap_or(first);
-
-        Self::parse_number(first, last)
+        let numerics = self.numbers.iter().filter(|n| CalibrationNumber::is_numeric(n));
+        Self::get_number(numerics)
     }
 
+    #[inline(always)]
     pub fn get_value(&self) -> CalibrationResult<i32> {
-        // Get first and last number
-        let first = self.numbers.first().ok_or(CalibrationError::NoNumbers)?;
-        let last = self.numbers.last().unwrap_or(first);
-
-        Self::parse_number(first, last)
+        Self::get_number(self.numbers.iter())
     }
 
-    fn parse_number(first: &CalibrationNumber, last: &CalibrationNumber) -> CalibrationResult<i32> {
-        // Format numbers
-        format!("{}{}", first.as_int(), last.as_int())
-            .parse()
-            .map_err(|err: ParseIntError| err.into())
+    #[inline(always)]
+    fn get_number<'a>(mut iter: impl Iterator<Item = &'a CalibrationNumber>) -> CalibrationResult<i32> {
+        let first = iter.next().ok_or(CalibrationError::NoNumbers)?;
+        let last = iter.last().unwrap_or(first);
+        let num = format!("{}{}", first.as_int(), last.as_int()).parse()?;
+        Ok(num)
     }
 }
 
@@ -126,23 +125,21 @@ impl FromStr for CalibrationValue {
     }
 }
 
-pub struct Trebuchet {
-    calibration: Vec<CalibrationValue>,
-}
+pub struct Trebuchet(Vec<CalibrationValue>);
 
 impl Trebuchet {
     pub fn new(calibration: &str) -> Result<Self, CalibrationError> {
-        Ok(Self {
-            calibration: calibration
+        Ok(Self(
+            calibration
                 .lines()
                 .map(CalibrationValue::from_str)
                 .collect::<Result<Vec<_>, CalibrationError>>()?,
-        })
+        ))
     }
 
     pub fn get_calibration_sum(&self) -> CalibrationResult<i32> {
         Ok(self
-            .calibration
+            .0
             .iter()
             .map(CalibrationValue::get_value)
             .collect::<CalibrationResult<Vec<i32>>>()?
@@ -152,7 +149,7 @@ impl Trebuchet {
 
     pub fn get_numeric_calibration_sum(&self) -> CalibrationResult<i32> {
         Ok(self
-            .calibration
+            .0
             .iter()
             .map(CalibrationValue::get_numeric_value)
             .collect::<CalibrationResult<Vec<i32>>>()?
