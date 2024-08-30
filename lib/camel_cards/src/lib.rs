@@ -11,6 +11,7 @@ use std::{
     str::FromStr,
 };
 
+/// Error type for parsing cards
 #[derive(Debug)]
 pub enum CardsError {
     ParseInt(ParseIntError),
@@ -33,6 +34,7 @@ impl From<TryFromIntError> for CardsError {
     }
 }
 
+/// Card type
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum Card<const JOKERS: bool> {
     Joker,
@@ -80,10 +82,12 @@ impl<const JOKERS: bool> TryFrom<char> for Card<JOKERS> {
     }
 }
 
+/// Card count
 #[derive(Debug, Default)]
 pub struct CardCount<const JOKERS: bool>(BTreeMap<Card<JOKERS>, u16>);
 
 impl<const JOKERS: bool> CardCount<JOKERS> {
+    /// Creates a new card count from a slice of cards
     pub fn new(cards: &[Card<JOKERS>]) -> Result<Self, CardsError> {
         // Create empty map
         let mut counts = Self::default();
@@ -114,21 +118,25 @@ impl<const JOKERS: bool> CardCount<JOKERS> {
 
     /// Adds a card to the counter if no entry is found.
     /// Increments the counter if the card is found.
+    #[inline(always)]
     pub fn count(&mut self, card: &Card<JOKERS>) {
         self.entry(*card).and_modify(|count| *count += 1).or_insert(1);
     }
 
     /// Returns the lowest count in the counter
+    #[inline(always)]
     pub fn lowest(&self) -> Result<&u16, CardsError> {
         self.values().min().ok_or(CardsError::GetLowCount)
     }
 
     /// Returns the highest count in the counter
+    #[inline(always)]
     pub fn highest(&self) -> Result<&u16, CardsError> {
         self.values().max().ok_or(CardsError::GetHighCount)
     }
 
     /// Returns the highest counted non-joker card
+    #[inline(always)]
     fn highest_non_joker_card(&self) -> Option<Card<JOKERS>> {
         self.iter()
             .filter(|(card, _)| **card != Card::<JOKERS>::Joker)
@@ -150,6 +158,7 @@ impl<const JOKERS: bool> DerefMut for CardCount<JOKERS> {
     }
 }
 
+/// Hand type
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub enum HandType {
     HighCard,
@@ -161,6 +170,7 @@ pub enum HandType {
     FiveOfAKind,
 }
 
+/// A hand of cards
 #[derive(Debug, PartialEq, Eq)]
 pub struct Hand<const JOKERS: bool> {
     cards: [Card<JOKERS>; 5],
@@ -169,11 +179,15 @@ pub struct Hand<const JOKERS: bool> {
 }
 
 impl<const JOKERS: bool> Hand<JOKERS> {
+    /// Creates a new hand of cards
+    #[inline(always)]
     pub fn new(cards: [Card<JOKERS>; 5], bid: u64) -> Result<Self, CardsError> {
         let typ = Self::get_hand_type(&cards)?;
         Ok(Self { cards, bid, typ })
     }
 
+    /// Gets the hand type of the cards
+    #[inline(always)]
     fn get_hand_type(cards: &[Card<JOKERS>; 5]) -> Result<HandType, CardsError> {
         use HandType::*;
 
@@ -209,11 +223,13 @@ impl<const JOKERS: bool> Hand<JOKERS> {
 }
 
 impl<const JOKERS: bool> PartialOrd for Hand<JOKERS> {
+    #[inline(always)]
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
         Some(self.cmp(other))
     }
 }
 impl<const JOKERS: bool> Ord for Hand<JOKERS> {
+    #[inline(always)]
     fn cmp(&self, other: &Self) -> std::cmp::Ordering {
         use std::cmp::Ordering::*;
 
@@ -259,6 +275,8 @@ impl<const JOKERS: bool> FromStr for Hand<JOKERS> {
 pub struct Hands<const JOKERS: bool>(BTreeSet<Hand<JOKERS>>);
 
 impl<const JOKERS: bool> Hands<JOKERS> {
+    /// Gets the total winnings of the hands
+    #[inline(always)]
     pub fn get_total_winnings(&self) -> u64 {
         // Zip ranks with the values, and multiply
         (1u64..).zip(self.0.iter()).map(|(rank, hand)| rank * hand.bid).sum()

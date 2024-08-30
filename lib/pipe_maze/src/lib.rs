@@ -1,11 +1,24 @@
 use std::str::FromStr;
 
+/// Error type for parsing the maze
 #[derive(Debug)]
 pub enum MazeError {
     InvalidTile(char),
     Empty,
 }
 
+impl std::error::Error for MazeError {}
+
+impl std::fmt::Display for MazeError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::InvalidTile(tile) => write!(f, "Invalid tile: {}", tile),
+            Self::Empty => write!(f, "Maze is empty"),
+        }
+    }
+}
+
+/// A coordinate in the maze
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Coordinate {
     x: usize,
@@ -13,10 +26,13 @@ pub struct Coordinate {
 }
 
 impl Coordinate {
+    /// Create a new coordinate
     pub const fn new(x: usize, y: usize) -> Self {
         Self { x, y }
     }
 
+    /// Transform the coordinate in a direction
+    #[inline(always)]
     pub fn transform(&mut self, direction: &Direction) -> Option<()> {
         match direction {
             Direction::North => self.y = self.y.checked_sub(1)?,
@@ -28,6 +44,7 @@ impl Coordinate {
     }
 }
 
+/// A direction in the maze
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Direction {
     North,
@@ -37,9 +54,11 @@ pub enum Direction {
 }
 
 impl Direction {
+    /// All directions
     const ALL: [Self; 4] = [Self::North, Self::West, Self::South, Self::East];
 }
 
+/// A pipe in the maze
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Pipe {
     Vertical,
@@ -69,6 +88,7 @@ impl TryFrom<char> for Pipe {
 }
 
 impl Pipe {
+    /// Calculate the next direction to go in, based on the current direction and the pipe
     pub const fn redirect(&self, from: Direction) -> Option<Direction> {
         use Direction::*;
 
@@ -101,6 +121,7 @@ impl Pipe {
     }
 }
 
+/// A tile in the maze
 #[derive(Debug, PartialEq, Eq)]
 pub enum Tile {
     Pipe(Pipe),
@@ -122,6 +143,7 @@ impl TryFrom<char> for Tile {
     }
 }
 
+/// A maze
 pub struct Maze {
     tiles: Vec<Vec<Tile>>,
 }
@@ -145,10 +167,14 @@ impl FromStr for Maze {
 }
 
 impl Maze {
+    /// Calculate picks theorem
+    #[inline(always)]
     const fn picks(area: usize, boundary: usize) -> usize {
         area - (boundary / 2) + 1
     }
 
+    /// Calculate the area of a polygon using the shoelace formula
+    #[inline(always)]
     fn shoelace(coordinates: Vec<Coordinate>) -> usize {
         (coordinates
             .windows(2)
@@ -159,6 +185,8 @@ impl Maze {
             / 2) as usize
     }
 
+    /// Find the starting position in the maze
+    #[inline(always)]
     fn find_starting_position(&self) -> Coordinate {
         let Some((x, y)) = self
             .tiles
@@ -173,10 +201,13 @@ impl Maze {
         Coordinate::new(x, y)
     }
 
+    /// Get the tile at a coordinate
+    #[inline(always)]
     fn get_tile(&self, coord: &Coordinate) -> &Tile {
         &self.tiles[coord.y][coord.x]
     }
 
+    /// Find the loop in the maze
     pub fn find_loop(&self) -> Vec<Coordinate> {
         let start = &self.find_starting_position();
 
@@ -208,6 +239,8 @@ impl Maze {
         unreachable!("We always have a path")
     }
 
+    /// Find the area of the nest
+    #[inline(always)]
     pub fn find_nest_area(&self) -> usize {
         let pipes = self.find_loop();
         let boundary = pipes.len();
@@ -215,12 +248,16 @@ impl Maze {
         Self::picks(area, boundary)
     }
 
+    /// Find the farthest point from the start
+    #[inline(always)]
     pub fn find_farthest_point_from_start(&self) -> usize {
         let pipes = self.find_loop();
         let len = pipes.len();
         len / 2
     }
 
+    /// Get the next pipe in a direction
+    #[inline(always)]
     fn get_next_pipe(&self, coord: &mut Coordinate, direction: &Direction) -> Option<&Pipe> {
         coord.transform(direction);
 

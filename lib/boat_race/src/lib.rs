@@ -1,14 +1,26 @@
 use std::{num::ParseIntError, str::FromStr};
 
+/// An error that can occur when parsing a Race
 #[derive(Debug)]
 pub enum ParseRaceError {
     ParseInt(ParseIntError),
     Invalid(String),
 }
 
+impl std::error::Error for ParseRaceError {}
+
 impl From<ParseIntError> for ParseRaceError {
     fn from(value: ParseIntError) -> Self {
         Self::ParseInt(value)
+    }
+}
+
+impl std::fmt::Display for ParseRaceError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::ParseInt(e) => write!(f, "Failed to parse integer: {}", e),
+            Self::Invalid(e) => write!(f, "Invalid input: {}", e),
+        }
     }
 }
 
@@ -18,14 +30,20 @@ pub struct Race {
 }
 
 impl Race {
+    /// Create a new Race
+    #[inline(always)]
     pub const fn new(time: u64, distance: u64) -> Self {
         Self { time, distance }
     }
 
+    /// Check if the boat has won the
+    #[inline(always)]
     pub const fn has_won(&self, boat: &Boat) -> bool {
         boat.distance_traveled > self.distance
     }
 
+    /// Find the amount of time the boat can hold the button and still win
+    #[inline(always)]
     pub fn find_winning_conditions_amount(&self) -> u64 {
         // We are not interested in holding the button for 0 ms,
         // as this would result in 0 distance
@@ -51,6 +69,7 @@ impl Race {
     }
 }
 
+/// A boat for racing
 #[derive(Default)]
 pub struct Boat {
     speed: u64,
@@ -58,15 +77,20 @@ pub struct Boat {
 }
 
 impl Boat {
+    /// Hold the button for a certain amount of time
+    #[inline(always)]
     pub fn hold_button_for(&mut self, millis: u64) {
         self.speed += millis
     }
 
+    /// Travel for a certain amount of time
+    #[inline(always)]
     pub fn travel_for(&mut self, millis: u64) {
         self.distance_traveled = self.speed * millis
     }
 }
 
+/// A collection of Races
 pub struct Races {
     races: Vec<Race>,
 }
@@ -98,10 +122,14 @@ impl FromStr for Races {
 }
 
 impl Races {
+    /// Get the winning product of all Races
+    #[inline(always)]
     pub fn get_winning_product(&self) -> u64 {
         self.races.iter().map(Race::find_winning_conditions_amount).product()
     }
 
+    /// Combine Races into a single Race
+    #[inline(always)]
     pub fn as_single_race(self) -> Result<Self, ParseRaceError> {
         let (time, distance) = self
             .races

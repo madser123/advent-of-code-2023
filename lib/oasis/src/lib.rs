@@ -10,9 +10,20 @@ pub enum OasisError {
     NoHistories,
 }
 
+impl std::error::Error for OasisError {}
+
 impl From<ParseIntError> for OasisError {
     fn from(value: ParseIntError) -> Self {
         Self::ParseHistory(value)
+    }
+}
+
+impl std::fmt::Display for OasisError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::ParseHistory(int_err) => write!(f, "Failed to parse history: {int_err:?}"),
+            Self::NoHistories => write!(f, "No histories found"),
+        }
     }
 }
 
@@ -25,11 +36,13 @@ pub struct Layer(Vec<Value>);
 
 impl Layer {
     /// Checks if all values in the layer is `0`
+    #[inline(always)]
     fn is_all_zero(&self) -> bool {
-        self.0.iter().all(|n| *n == 0)
+        self.0.iter().all(|&n| n == 0)
     }
 
     /// Calculates the differences between values in the layer, to create the layer below it.
+    #[inline(always)]
     pub fn get_next_layer(&self) -> Option<Self> {
         if self.is_all_zero() {
             return None;
@@ -42,11 +55,13 @@ impl Layer {
     }
 
     /// Returns the last value of the layer, if any
+    #[inline(always)]
     pub fn last_value(&self) -> Option<&Value> {
         self.0.last()
     }
 
     /// Returns the first value of the layer, if any
+    #[inline(always)]
     pub fn first_value(&self) -> Option<&Value> {
         self.0.first()
     }
@@ -73,11 +88,11 @@ impl FromStr for History {
                 unreachable!("Always at least one layer!")
             };
 
-            if let Some(next) = current.get_next_layer() {
-                layers.push(next);
-            } else {
+            let Some(next) = current.get_next_layer() else {
                 break;
-            }
+            };
+
+            layers.push(next);
         }
 
         Ok(Self(layers))
@@ -86,6 +101,7 @@ impl FromStr for History {
 
 impl History {
     /// Calculates the next value in the history
+    #[inline(always)]
     pub fn calculate_next_value(&self) -> Value {
         self.0
             .iter()
@@ -94,6 +110,7 @@ impl History {
     }
 
     /// Calculates the previous value in the history
+    #[inline(always)]
     pub fn calculate_prev_value(&self) -> Value {
         self.0.iter().rev().fold(0, |below, layer| {
             layer.first_value().map_or(below, |value| value - below)
@@ -117,6 +134,7 @@ impl Report {
     }
 
     /// Checks if the report is empty (No histories)
+    #[inline(always)]
     fn is_empty(&self) -> bool {
         self.0.is_empty()
     }

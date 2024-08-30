@@ -1,5 +1,6 @@
 use std::{collections::BTreeMap, num::TryFromIntError, ops::Index, str::FromStr};
 
+/// Error type for parsing the network
 #[derive(Debug)]
 pub enum NetworkError {
     ParseNode(String),
@@ -13,12 +14,31 @@ pub enum NetworkError {
     ConvertUsize(TryFromIntError),
 }
 
+impl std::error::Error for NetworkError {}
+
 impl From<TryFromIntError> for NetworkError {
     fn from(value: TryFromIntError) -> Self {
         Self::ConvertUsize(value)
     }
 }
 
+impl std::fmt::Display for NetworkError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::ParseNode(node) => write!(f, "Failed to parse node: {node}"),
+            Self::ParseNodeAddr(node) => write!(f, "Failed to parse node address: {node}"),
+            Self::GetSequence => write!(f, "Failed to get sequence"),
+            Self::GetNode(node) => write!(f, "Failed to get node: {node}"),
+            Self::GetNodeAddr(node) => write!(f, "Failed to get node address: {node}"),
+            Self::InvalidInstruction(inst) => write!(f, "Invalid instruction: {inst}"),
+            Self::InvalidNodeName(name) => write!(f, "Invalid node name: {name}"),
+            Self::TooManyAddresses(nodes) => write!(f, "Too many addresses: {nodes:?}"),
+            Self::ConvertUsize(int_err) => write!(f, "Failed to convert integer: {int_err:?}"),
+        }
+    }
+}
+
+/// An instruction for the network
 #[derive(Debug)]
 pub enum Instruction {
     Right,
@@ -37,10 +57,13 @@ impl TryFrom<char> for Instruction {
     }
 }
 
+/// A node in the network
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Node(String);
 
 impl Node {
+    /// Check if the node ends with a specific character
+    #[inline(always)]
     pub fn ends_with(&self, char: char) -> bool {
         self.0
             .chars()
@@ -62,11 +85,14 @@ impl FromStr for Node {
     }
 }
 
+/// An address for a node
 pub struct NodeAddress([Node; 2]);
 
+// Implement indexing for the NodeAddress, so that we can access the nodes with the instructions easily
 impl Index<&Instruction> for NodeAddress {
     type Output = Node;
 
+    #[inline(always)]
     fn index(&self, index: &Instruction) -> &Self::Output {
         match index {
             Instruction::Left => self.0.first().expect("Index 'Left' out of bounds"),
@@ -93,8 +119,27 @@ impl FromStr for NodeAddress {
     }
 }
 
+/// A sequence of instructions
 #[derive(Debug)]
 pub struct Sequence(Vec<Instruction>);
+
+impl Sequence {
+    /// Get the length of the sequence
+    #[inline(always)]
+    fn len(&self) -> usize {
+        self.0.len()
+    }
+}
+
+impl<'i> IntoIterator for &'i Sequence {
+    type Item = &'i Instruction;
+    type IntoIter = std::slice::Iter<'i, Instruction>;
+
+    #[inline(always)]
+    fn into_iter(self) -> Self::IntoIter {
+        self.0.iter()
+    }
+}
 
 impl FromStr for Sequence {
     type Err = NetworkError;
@@ -109,12 +154,14 @@ impl FromStr for Sequence {
     }
 }
 
+/// A network of nodes, with a sequence of instructions
 pub struct Network {
     nodes: BTreeMap<Node, NodeAddress>,
     seq: Sequence,
 }
 
 impl Network {
+    /// Find the amount of steps required to get to a specific node, using the sequence of instructions
     pub fn find_steps_required_for(&self, find: &Node) -> Result<u64, NetworkError> {
         let mut steps = 0;
         let mut current_node = self
@@ -124,7 +171,7 @@ impl Network {
             .ok_or_else(|| NetworkError::GetNode("Failed getting first node".to_string()))?;
 
         while current_node != find {
-            for inst in &self.seq.0 {
+            for inst in &self.seq {
                 let address = self.nodes.get(current_node).ok_or_else(|| {
                     NetworkError::GetNode(format!("Failed getting node while stepping: {current_node:?}"))
                 })?;
@@ -138,6 +185,7 @@ impl Network {
         Ok(steps)
     }
 
+    /// Find the amount of "ghost steps" required to get to a specific node, using the sequence of instructions
     pub fn find_ghost_steps_required_for(&self, node_ends_with: char) -> Result<u64, NetworkError> {
         let mut cycles = 0;
         let mut current_nodes = self
@@ -148,7 +196,7 @@ impl Network {
         let mut node_cycles: Vec<u64> = Vec::new();
 
         while !current_nodes.iter().all(|node| node.ends_with(node_ends_with)) {
-            for inst in &self.seq.0 {
+            for inst in &self.seq {
                 current_nodes.iter_mut().try_for_each(|current| {
                     let address = self.nodes.get(current).ok_or_else(|| {
                         NetworkError::GetNode(format!("Failed getting node while stepping: {current:?}"))
@@ -179,11 +227,13 @@ impl Network {
             .iter()
             .fold(1u64, |least, common| Self::find_lcm(least, *common));
 
-        let seq_len: u64 = self.seq.0.len().try_into()?;
+        let seq_len: u64 = self.seq.len().try_into()?;
 
         Ok(lcm * seq_len)
     }
 
+    /// Find the greatest common factor between two numbers
+    #[inline(always)]
     fn find_greatest_common_factor(a: u64, b: u64) -> u64 {
         let min_val = a.min(b);
         let max_val = a.max(b);
@@ -195,6 +245,8 @@ impl Network {
         Self::find_greatest_common_factor(min_val, max_val % min_val)
     }
 
+    /// Find the least common multiple between two numbers
+    #[inline(always)]
     fn find_lcm(a: u64, b: u64) -> u64 {
         a * (b / Self::find_greatest_common_factor(a, b))
     }

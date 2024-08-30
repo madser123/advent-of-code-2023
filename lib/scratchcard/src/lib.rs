@@ -10,6 +10,8 @@ pub enum ScratchCardError {
     ConvertUsize(TryFromIntError),
 }
 
+impl std::error::Error for ScratchCardError {}
+
 impl From<ParseIntError> for ScratchCardError {
     fn from(value: ParseIntError) -> Self {
         Self::ParseInt(value)
@@ -22,6 +24,17 @@ impl From<TryFromIntError> for ScratchCardError {
     }
 }
 
+impl std::fmt::Display for ScratchCardError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Invalid => write!(f, "Invalid scratchcard"),
+            Self::ParseInt(int_err) => write!(f, "Failed to parse integer: {int_err:?}"),
+            Self::ConvertUsize(int_err) => write!(f, "Failed to convert integer: {int_err:?}"),
+        }
+    }
+}
+
+/// A scratchcard with winning and regular numbers
 #[derive(Debug, Clone)]
 pub struct ScratchCard {
     id: usize,
@@ -64,14 +77,20 @@ impl FromStr for ScratchCard {
 }
 
 impl ScratchCard {
+    /// Get the ID of the scratchcard
+    #[inline(always)]
     pub const fn id(&self) -> &usize {
         &self.id
     }
 
+    /// Get the amount of scratchcards (copies)
+    #[inline(always)]
     pub const fn amount(&self) -> &usize {
         &self.amount
     }
 
+    /// Get the total worth of the scratchcard
+    #[inline]
     pub fn worth(&self) -> Result<i32, ScratchCardError> {
         let total_winning = self.total_winning_numbers();
 
@@ -84,6 +103,8 @@ impl ScratchCard {
         Ok(2i32.pow(exponent))
     }
 
+    /// Get the total amount of winning numbers
+    #[inline(always)]
     fn total_winning_numbers(&self) -> usize {
         self.winning_numbers
             .iter()
@@ -91,6 +112,8 @@ impl ScratchCard {
             .count()
     }
 
+    /// Add copies of the scratchcard
+    #[inline(always)]
     pub fn add_copies(&mut self, copies: usize) {
         self.amount += copies;
     }
@@ -100,6 +123,7 @@ impl ScratchCard {
 pub struct ScratchCards(Vec<ScratchCard>);
 
 impl ScratchCards {
+    /// Get the total worth of all scratchcards
     pub fn get_points_worth(&self) -> Result<i32, ScratchCardError> {
         Ok(self
             .0
@@ -110,6 +134,7 @@ impl ScratchCards {
             .sum())
     }
 
+    /// Calculate the total amount of scratchcards, with respect to copies
     pub fn calculate_copies_and_get_total(&mut self) -> Result<usize, ScratchCardError> {
         (0..self.0.len()).for_each(|key| {
             let Some(card) = self.0.get(key) else {

@@ -1,5 +1,6 @@
 use std::{collections::BTreeMap, num::ParseIntError, ops::Range, str::FromStr, sync::Arc};
 
+/// An error that can occur when parsing an Almanac
 #[derive(Debug)]
 pub enum ParseAlmanacError {
     ParseInt(ParseIntError),
@@ -8,12 +9,26 @@ pub enum ParseAlmanacError {
     NoKeyFound,
 }
 
+impl std::error::Error for ParseAlmanacError {}
+
 impl From<ParseIntError> for ParseAlmanacError {
     fn from(value: ParseIntError) -> Self {
         Self::ParseInt(value)
     }
 }
 
+impl std::fmt::Display for ParseAlmanacError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::ParseInt(e) => write!(f, "Failed to parse integer: {}", e),
+            Self::GetSeeds => write!(f, "Failed to get seeds"),
+            Self::InvalidMapKey(e) => write!(f, "Invalid map key: {}", e),
+            Self::NoKeyFound => write!(f, "No key found"),
+        }
+    }
+}
+
+/// Values for each "layer" in the translation map
 #[derive(Debug, Clone, Copy, PartialEq, PartialOrd, Eq, Ord, Hash)]
 pub enum ValueType {
     Seed,
@@ -27,6 +42,8 @@ pub enum ValueType {
 }
 
 impl ValueType {
+    /// Get the next variant in the enum
+    #[inline(always)]
     pub const fn next_variant(&self) -> Option<Self> {
         use ValueType::*;
         let next = match *self {
@@ -44,6 +61,7 @@ impl ValueType {
     }
 }
 
+/// A value in the translation map
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct TranslationValue {
     typ: ValueType,
@@ -51,18 +69,22 @@ pub struct TranslationValue {
 }
 
 impl TranslationValue {
+    /// Create a new TranslationValue
+    #[inline(always)]
     pub const fn new(typ: ValueType, from: u64, to: u64) -> Self {
         Self { typ, range: from..to }
     }
 }
 
 impl PartialOrd for TranslationValue {
+    #[inline(always)]
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
         Some(self.cmp(other))
     }
 }
 
 impl Ord for TranslationValue {
+    #[inline(always)]
     fn cmp(&self, other: &Self) -> std::cmp::Ordering {
         use std::cmp::Ordering::*;
 
@@ -88,18 +110,25 @@ impl Ord for TranslationValue {
 pub struct TranslationMap(BTreeMap<TranslationValue, TranslationValue>);
 
 impl TranslationMap {
+    /// Add a translation to the map
+    #[inline(always)]
     fn add_translation(&mut self, from: TranslationValue, to: TranslationValue) {
         self.0.insert(from, to);
     }
 
+    /// Get the location of a seed
+    #[inline(always)]
     pub fn get_location_of_seed(&self, seed: u64) -> Option<u64> {
         self.walk(ValueType::Seed, seed..seed)
     }
 
+    /// Translate a range from one ValueType to another
+    #[inline(always)]
     fn translate_range(&self, source_type: ValueType, source_range: Range<u64>) -> Option<u64> {
         self.walk(source_type, source_range)
     }
 
+    /// Walk the translation map
     fn walk(&self, from: ValueType, range: Range<u64>) -> Option<u64> {
         // Iterate over keys for current valuetype (Seed, Soil, etc..) where the range is hitting
         let keys = self
@@ -140,6 +169,7 @@ impl TranslationMap {
     }
 }
 
+/// An Almanac
 #[derive(Debug)]
 pub struct Almanac {
     seeds: Vec<u64>,
@@ -147,6 +177,8 @@ pub struct Almanac {
 }
 
 impl Almanac {
+    /// Get the lowest location of the seed ranges
+    #[inline(always)]
     pub fn get_lowest_location_of_seed_ranges(&self) -> Option<u64> {
         let mut min = u64::MAX;
 
@@ -164,6 +196,8 @@ impl Almanac {
         Some(min)
     }
 
+    /// Get the lowest location of the seeds
+    #[inline(always)]
     pub fn get_lowest_location(&self) -> Option<u64> {
         self.seeds
             .iter()

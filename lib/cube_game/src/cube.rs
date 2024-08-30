@@ -10,6 +10,7 @@ pub struct Cubes(HashMap<Color, i32>);
 
 impl Cubes {
     /// Creates a new empty set of cubes.
+    #[inline(always)]
     pub fn new() -> Self {
         Self::default()
     }
@@ -17,6 +18,7 @@ impl Cubes {
     /// Returns the "power" of the cubes.
     ///
     /// This means all the cube-counts, multiplied with each other.
+    #[inline(always)]
     pub fn power(&self) -> i32 {
         // Multiply all values in the limits
         self.values().product()
@@ -27,11 +29,13 @@ impl Cubes {
 impl Deref for Cubes {
     type Target = HashMap<Color, i32>;
 
+    #[inline(always)]
     fn deref(&self) -> &Self::Target {
         &self.0
     }
 }
 impl DerefMut for Cubes {
+    #[inline(always)]
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.0
     }

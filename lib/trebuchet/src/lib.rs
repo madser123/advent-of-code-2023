@@ -41,12 +41,14 @@ impl std::fmt::Display for CalibrationError {
     }
 }
 
+/// A calibration number, either alphabetic or numeric
 pub enum CalibrationNumber {
     Alphabetic(i32),
     Numeric(i32),
 }
 
 impl CalibrationNumber {
+    /// Get the integer value of the calibration number
     #[inline(always)]
     pub const fn as_int(&self) -> &i32 {
         match self {
@@ -54,6 +56,7 @@ impl CalibrationNumber {
         }
     }
 
+    /// Check if the calibration number is numeric
     #[inline(always)]
     pub const fn is_numeric(&self) -> bool {
         match self {
@@ -65,22 +68,26 @@ impl CalibrationNumber {
 
 /// A calibration value representing the
 /// first and last numbers for a calibration line
-pub struct CalibrationValue {
-    numbers: Vec<CalibrationNumber>,
-}
+pub struct CalibrationValue(Vec<CalibrationNumber>);
 
 impl CalibrationValue {
+    /// Get the value of the **numeric** calibration numbers
     #[inline(always)]
     pub fn get_numeric_value(&self) -> CalibrationResult<i32> {
-        let numerics = self.numbers.iter().filter(|n| CalibrationNumber::is_numeric(n));
+        let numerics = self.0.iter().filter(|n| CalibrationNumber::is_numeric(n));
         Self::get_number(numerics)
     }
 
+    /// Get the value of the calibration value
     #[inline(always)]
     pub fn get_value(&self) -> CalibrationResult<i32> {
-        Self::get_number(self.numbers.iter())
+        Self::get_number(self.0.iter())
     }
 
+    /// Gets the first and last values of the provided iterator, and combines them into a single number (Not a sum)
+    ///
+    /// e.g. `1` and `9` becomes `19`
+    ///
     #[inline(always)]
     fn get_number<'a>(mut iter: impl Iterator<Item = &'a CalibrationNumber>) -> CalibrationResult<i32> {
         let first = iter.next().ok_or(CalibrationError::NoNumbers)?;
@@ -121,13 +128,14 @@ impl FromStr for CalibrationValue {
             return Err(CalibrationError::NoNumbers);
         }
 
-        Ok(Self { numbers })
+        Ok(Self(numbers))
     }
 }
 
 pub struct Trebuchet(Vec<CalibrationValue>);
 
 impl Trebuchet {
+    /// Create a new trebuchet from a calibration string
     pub fn new(calibration: &str) -> Result<Self, CalibrationError> {
         Ok(Self(
             calibration
@@ -137,6 +145,7 @@ impl Trebuchet {
         ))
     }
 
+    /// Get the sum of all calibration values
     pub fn get_calibration_sum(&self) -> CalibrationResult<i32> {
         Ok(self
             .0
@@ -147,6 +156,7 @@ impl Trebuchet {
             .sum())
     }
 
+    /// Get the sum of all **numeric** calibration values
     pub fn get_numeric_calibration_sum(&self) -> CalibrationResult<i32> {
         Ok(self
             .0

@@ -10,6 +10,8 @@ use round::{Round, RoundError};
 #[derive(Debug)]
 pub struct GameError(RoundError);
 
+impl std::error::Error for GameError {}
+
 impl From<RoundError> for GameError {
     fn from(value: RoundError) -> Self {
         Self(value)
@@ -22,8 +24,6 @@ impl std::fmt::Display for GameError {
     }
 }
 
-impl std::error::Error for GameError {}
-
 /// A game of "cube conundrum"
 pub struct Game {
     rounds: Vec<Round>,
@@ -32,15 +32,15 @@ pub struct Game {
 
 impl Game {
     /// Creates a new game
+    #[inline(always)]
     pub fn new(string: &str, limits: Cubes) -> Result<Self, GameError> {
-        let rounds = string
-            .split('\n')
-            .map(Round::from_str)
-            .collect::<Result<Vec<_>, _>>()?;
+        let rounds = string.split('\n').map(Round::from_str).collect::<Result<Vec<_>, _>>()?;
 
         Ok(Self { rounds, limits })
     }
 
+    /// Returns the sum of all valid round IDs
+    #[inline(always)]
     pub fn get_ids_sum(&self) -> i32 {
         self.rounds
             .iter()
@@ -53,11 +53,10 @@ impl Game {
             .sum()
     }
 
+    /// Returns the sum of the minimum power of all rounds
+    #[inline(always)]
     pub fn get_minimum_powers_sum(&self) -> i32 {
-        self.rounds
-            .iter()
-            .map(|round| round.get_minimum_set().power())
-            .sum()
+        self.rounds.iter().map(|round| round.get_minimum_set().power()).sum()
     }
 }
 

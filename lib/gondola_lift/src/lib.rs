@@ -3,18 +3,24 @@ use std::{
     num::{ParseIntError, TryFromIntError},
 };
 
+/// Part module
 pub mod part;
+
+/// Symbol module
 pub mod symbol;
 
 use part::{Part, Parts};
 use symbol::Symbol;
 
+/// Error for schematic parsing
 #[derive(Debug)]
 pub enum SchematicError {
     ParseUsize(TryFromIntError),
     ParseInt(ParseIntError),
     Empty,
 }
+
+impl std::error::Error for SchematicError {}
 
 impl From<TryFromIntError> for SchematicError {
     fn from(value: TryFromIntError) -> Self {
@@ -28,6 +34,44 @@ impl From<ParseIntError> for SchematicError {
     }
 }
 
+impl std::fmt::Display for SchematicError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Empty => write!(f, "Schematic is empty"),
+            Self::ParseUsize(int_err) => write!(f, "Failed to parse usize: {int_err:?}"),
+            Self::ParseInt(int_err) => write!(f, "Failed to parse integer: {int_err:?}"),
+        }
+    }
+}
+
+/// A coordinate in a schematic
+#[derive(Clone, Copy, Debug)]
+pub struct SchematicCoordinate {
+    line: i32,
+    column: i32,
+}
+
+impl SchematicCoordinate {
+    /// Create a new schematic coordinate
+    #[inline(always)]
+    pub const fn new(line: i32, column: i32) -> Self {
+        Self { line, column }
+    }
+
+    /// Get the line (row) of the coordinate
+    #[inline(always)]
+    pub const fn line(&self) -> &i32 {
+        &self.line
+    }
+
+    /// Get the column of the coordinate
+    #[inline(always)]
+    pub const fn column(&self) -> &i32 {
+        &self.column
+    }
+}
+
+/// A schematic for an engine
 #[derive(Debug)]
 pub struct EngineSchematic {
     symbols: Vec<Symbol>,
@@ -35,6 +79,7 @@ pub struct EngineSchematic {
 }
 
 impl EngineSchematic {
+    /// Create a new schematic
     pub fn new(schematic: &str) -> Result<Self, SchematicError> {
         let schematic: BTreeMap<i32, String> = (0i32..)
             // Enumerate all lines
@@ -60,6 +105,8 @@ impl EngineSchematic {
         })
     }
 
+    /// Get all parts in the schematic
+    #[inline(always)]
     pub fn get_parts(&self) -> Parts {
         self.symbols
             .iter()
@@ -67,6 +114,8 @@ impl EngineSchematic {
             .collect()
     }
 
+    /// Get the gear ratio of the schematic
+    #[inline(always)]
     pub fn get_gear_ratio(&self) -> i32 {
         self.symbols
             .iter()
@@ -83,6 +132,8 @@ impl EngineSchematic {
             .sum()
     }
 
+    /// Get the parts around a symbol
+    #[inline(always)]
     fn get_parts_around_symbol(&self, symbol: &Symbol) -> Vec<Part> {
         let mut adjacent_parts = Vec::new();
 
@@ -101,6 +152,8 @@ impl EngineSchematic {
         adjacent_parts
     }
 
+    /// Find symbols in a line
+    #[inline(always)]
     fn find_symbols(line: (&i32, &String)) -> Vec<Symbol> {
         // Extract tuple values
         let (line, contents) = line;
@@ -112,19 +165,19 @@ impl EngineSchematic {
             // Map and match
             .filter_map(|(c, column)| match c {
                 '.' => None,
-                _ if c.is_ascii_punctuation() => Some(Symbol::new(
-                    SchematicCoordinate::new(*line, column),
-                    '*' == c,
-                )),
+                _ if c.is_ascii_punctuation() => Some(Symbol::new(SchematicCoordinate::new(*line, column), '*' == c)),
                 _ => None,
             })
             .collect::<Vec<_>>()
     }
 
+    /// Find possible parts in a line
+    #[inline(always)]
     fn find_possible_parts(line: (&i32, &String)) -> Result<(i32, Parts), SchematicError> {
         // Extract tuple values
         let (line, contents) = line;
 
+        // Filter out all numeric characters and zip with column
         let number_chars = contents
             .chars()
             .zip(0i32..)
@@ -147,11 +200,7 @@ impl EngineSchematic {
             })
             .map(|p| {
                 // Construct part out of number vecs
-                let number = p
-                    .iter()
-                    .map(|(c, _)| c)
-                    .collect::<String>()
-                    .parse::<i32>()?;
+                let number = p.iter().map(|(c, _)| c).collect::<String>().parse::<i32>()?;
                 let columns = p.iter().map(|(_, column)| *column).collect::<Vec<i32>>();
                 let start = SchematicCoordinate::new(*line, columns[0]);
                 let end = SchematicCoordinate::new(*line, *columns.last().unwrap_or(&columns[0]));
@@ -161,26 +210,6 @@ impl EngineSchematic {
             .collect::<Result<Parts, SchematicError>>()?;
 
         Ok((*line, parts))
-    }
-}
-
-#[derive(Clone, Copy, Debug)]
-pub struct SchematicCoordinate {
-    line: i32,
-    column: i32,
-}
-
-impl SchematicCoordinate {
-    pub const fn new(line: i32, column: i32) -> Self {
-        Self { line, column }
-    }
-
-    pub const fn line(&self) -> &i32 {
-        &self.line
-    }
-
-    pub const fn column(&self) -> &i32 {
-        &self.column
     }
 }
 

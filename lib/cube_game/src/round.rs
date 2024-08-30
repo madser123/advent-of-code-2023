@@ -1,6 +1,7 @@
 use crate::cube::{Color, ColorError, Cubes};
 use std::{num::ParseIntError, str::FromStr};
 
+/// Error type for parsing rounds
 #[derive(Debug)]
 pub enum RoundError {
     NoId,
@@ -8,6 +9,8 @@ pub enum RoundError {
     ParseColor(ColorError),
     DuplicateCubes(Color),
 }
+
+impl std::error::Error for RoundError {}
 
 impl From<ParseIntError> for RoundError {
     fn from(value: ParseIntError) -> Self {
@@ -32,6 +35,7 @@ impl std::fmt::Display for RoundError {
     }
 }
 
+/// A draw of cubes
 pub struct Draw {
     cubes: Cubes,
 }
@@ -68,12 +72,15 @@ impl FromStr for Draw {
     }
 }
 
+/// A round of the game
 pub struct Round {
     id: i32,
     draws: Vec<Draw>,
 }
 
 impl Round {
+    /// Checks if the round is valid
+    #[inline(always)]
     pub fn is_valid(&self, limits: &Cubes) -> bool {
         // Iterate over all draws
         self.draws.iter().all(|draw| {
@@ -90,6 +97,8 @@ impl Round {
         })
     }
 
+    /// Get the minimum set of cubes
+    #[inline(always)]
     pub fn get_minimum_set(&self) -> Cubes {
         // Create set
         let mut minimum_set = Cubes::new();
@@ -117,6 +126,8 @@ impl Round {
         minimum_set
     }
 
+    /// Get the ID of the round
+    #[inline(always)]
     pub const fn id(&self) -> &i32 {
         &self.id
     }
