@@ -129,18 +129,16 @@ fn day10(input: String) {
 }
 
 fn day11(input: String) {
-    let image = Image::from_str(&input).expect("Failed to parse image");
+    let mut image = Image::from_str(&input).expect("Failed to parse image");
 
-    let mut image_1 = image.clone();
-    image_1.expand(1);
+    image.resize(2);
 
     let paths_sum = image.find_shortest_paths_sum();
     println!("Shortest paths sum: {paths_sum}");
 
-    let mut image_2 = image;
-    image_2.expand(1_000_000);
+    image.resize(1_000_000);
 
-    let paths_sum = image_2.find_shortest_paths_sum();
+    let paths_sum = image.find_shortest_paths_sum();
     println!("Shortest paths sum 1mil: {paths_sum}");
 }
 

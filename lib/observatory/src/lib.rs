@@ -5,6 +5,7 @@ pub enum ObservatoryError {
     ParsePixel(char),
 }
 
+/// A coordinate in the image
 #[derive(Debug)]
 pub struct Coordinate {
     row: usize,
@@ -16,10 +17,12 @@ impl Coordinate {
         Self { row, col }
     }
 
+    /// Finds the shortest path to another coordinate
     pub const fn shortest_path_to(&self, other: &Self) -> usize {
         self.col.abs_diff(other.col) + self.row.abs_diff(other.row)
     }
 
+    /// Adds to the row part of the coordinate
     pub const fn add_row(&self, row: usize) -> Self {
         Self {
             row: self.row + row,
@@ -27,6 +30,7 @@ impl Coordinate {
         }
     }
 
+    /// Adds to the column part of the coordinate
     pub const fn add_col(&self, col: usize) -> Self {
         Self {
             row: self.row,
@@ -35,6 +39,10 @@ impl Coordinate {
     }
 }
 
+/// A pixel in the image.
+///
+/// The empty variant contains the length of the empty space.
+///
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Pixel {
     Empty(usize),
@@ -42,6 +50,7 @@ pub enum Pixel {
 }
 
 impl Pixel {
+    /// Gets the "length" of the pixel
     pub const fn get_length(&self) -> usize {
         match self {
             Self::Empty(n) => *n,
@@ -67,13 +76,14 @@ impl TryFrom<char> for Pixel {
 impl Display for Pixel {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let pixel = match self {
-            Self::Empty(n) => format!("_.x{}_", n),
+            Self::Empty(n) => format!(".x{}", n),
             Self::Galaxy => "#".to_string(),
         };
         write!(f, "{pixel}")
     }
 }
 
+/// An image containing pixels
 #[derive(Clone)]
 pub struct Image {
     data: Vec<Vec<Pixel>>,
@@ -101,7 +111,9 @@ impl Image {
         self.data[0].len()
     }
 
-    pub fn expand(&mut self, age: usize) {
+    /// Resizes the image according to the age
+    pub fn resize(&mut self, age: usize) {
+        // Resize rows that do not contain a galaxy (Empty rows)
         let mut row = 0;
         while row < self.height() {
             if !self.row_contains_galaxy(row) {
@@ -117,6 +129,7 @@ impl Image {
             row += 1;
         }
 
+        // Resize columns that do not contain a galaxy (Empty columns)
         let mut col = 0;
         while col < self.width() {
             if !self.column_contains_galaxy(col) {
@@ -128,10 +141,12 @@ impl Image {
         }
     }
 
+    /// Checks if a row contains a galaxy
     fn row_contains_galaxy(&self, row: usize) -> bool {
         self.data[row].contains(&Pixel::Galaxy)
     }
 
+    /// Checks if a column contains a galaxy
     fn column_contains_galaxy(&self, col: usize) -> bool {
         (0..self.height()).any(|row| {
             if let Some(pixel) = self.data[row].get(col) {
@@ -141,16 +156,21 @@ impl Image {
         })
     }
 
+    /// Finds the coordinates of all galaxies in the image
     fn find_galaxies(&self) -> Vec<Coordinate> {
+        // Iterate over rows
         self.data
             .iter()
             .enumerate()
             .flat_map(|(r, row_pixels)| {
+                // Iterate the pixels in the row
                 row_pixels
                     .iter()
                     .enumerate()
                     .filter_map(|(c, pixel)| {
+                        // If the pixel is a galaxy -> find the coordinate
                         if pixel == &Pixel::Galaxy {
+                            // Create a coordinate by summing the lengths of the pixels
                             let coord = self.data[0..=r].iter().enumerate().fold(
                                 Coordinate::new(0, 0),
                                 |mut acc, (row, col_data)| {
@@ -221,7 +241,7 @@ mod tests {
     fn test_10x_expansion() {
         let mut image = Image::from_str(EXAMPLE).expect("Failed to parse image");
 
-        image.expand(10);
+        image.resize(10);
 
         assert_eq!(1030, image.find_shortest_paths_sum());
     }
@@ -230,7 +250,7 @@ mod tests {
     fn test_100x_expansion() {
         let mut image = Image::from_str(EXAMPLE).expect("Failed to parse image");
 
-        image.expand(100);
+        image.resize(100);
 
         assert_eq!(8410, image.find_shortest_paths_sum());
     }
@@ -239,7 +259,7 @@ mod tests {
     fn solution_1() {
         let mut image = Image::from_str(EXAMPLE).expect("Failed to parse image");
 
-        image.expand(2);
+        image.resize(2);
 
         assert_eq!(374, image.find_shortest_paths_sum());
     }
