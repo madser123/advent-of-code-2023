@@ -1,4 +1,4 @@
-use std::{collections::BTreeMap, num::ParseIntError, ops::Range, str::FromStr, sync::Arc};
+use std::{collections::BTreeMap, num::ParseIntError, ops::Range, str::FromStr};
 
 /// An error that can occur when parsing an Almanac
 #[derive(Debug)]
@@ -173,7 +173,7 @@ impl TranslationMap {
 #[derive(Debug)]
 pub struct Almanac {
     seeds: Vec<u64>,
-    translation: Arc<TranslationMap>,
+    translation: TranslationMap,
 }
 
 impl Almanac {
@@ -184,9 +184,8 @@ impl Almanac {
 
         for chunk in self.seeds.chunks(2) {
             let range = chunk[0]..(chunk[0] + chunk[1]);
-            let translation = self.translation.clone();
 
-            let result = translation.translate_range(ValueType::Seed, range.clone())?;
+            let result = self.translation.translate_range(ValueType::Seed, range.clone())?;
 
             if result < min {
                 min = result;
@@ -311,7 +310,7 @@ impl FromStr for Almanac {
 
         Ok(Self {
             seeds,
-            translation: Arc::new(map),
+            translation: map,
         })
     }
 }
