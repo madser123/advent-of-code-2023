@@ -28,7 +28,7 @@ Links can be found in the table below:
 | [08](https://adventofcode.com/2023/day/8)     | [lib/network_nodes](./lib/network_nodes/) |
 | [09](https://adventofcode.com/2023/day/9)     | [lib/oasis](./lib/oasis/)                 |
 | [10](https://adventofcode.com/2023/day/10)    | [lib/pipe_maze](./lib/pipe_maze/)         |
-| [11](https://adventofcode.com/2023/day/11)    | 🕙TBD |
+| [11](https://adventofcode.com/2023/day/11)    | [lib/observatory](./lib/observatory/)     |
 | [12](https://adventofcode.com/2023/day/12)    | 🕙TBD |
 | [13](https://adventofcode.com/2023/day/13)    | 🕙TBD |
 | [14](https://adventofcode.com/2023/day/14)    | 🕙TBD |

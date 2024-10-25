@@ -14,6 +14,7 @@ use cube_game::{cube::Color, Cubes, Game};
 use gondola_lift::EngineSchematic;
 use network_nodes::{Network, Node};
 use oasis::Report;
+use observatory::Image;
 use pipe_maze::Maze;
 use scratchcard::ScratchCards;
 use trebuchet::Trebuchet;
@@ -127,6 +128,20 @@ fn day10(input: String) {
     println!("Area of nest: {area}");
 }
 
+fn day11(input: String) {
+    let mut image = Image::from_str(&input).expect("Failed to parse image");
+
+    image.resize(2);
+
+    let paths_sum = image.find_shortest_paths_sum();
+    println!("Shortest paths sum: {paths_sum}");
+
+    image.resize(1_000_000);
+
+    let paths_sum = image.find_shortest_paths_sum();
+    println!("Shortest paths sum 1mil: {paths_sum}");
+}
+
 fn main() {
     println!("## Advent of Code 2023 solutions ##");
     time!("All", {
@@ -140,5 +155,6 @@ fn main() {
         day!(8, day8);
         day!(9, day9);
         day!(10, day10);
+        day!(11, day11);
     })
 }
